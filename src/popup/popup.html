@@ -9,27 +9,41 @@
   <body>
     <main class="popup-shell">
       <header class="hero">
-        <img
-          class="hero-mark"
-          src="../../assets/logo/zn-blocker-mark.svg"
-          alt="ZN blocker logo"
-          width="34"
-          height="34"
-        />
-        <div>
-          <h1>ZN blocker</h1>
-          <p class="subtitle">Adaptive protection controls for YouTube and the wider web.</p>
+        <div class="hero-main">
+          <img
+            class="hero-mark"
+            src="../../assets/logo/zn-blocker-mark.svg"
+            alt="ZN blocker logo"
+            width="38"
+            height="38"
+          />
+          <div>
+            <p class="eyebrow">Premium Shield Console</p>
+            <h1>ZN blocker</h1>
+            <p class="subtitle">Precision ad suppression for YouTube, redirects, and global ad-tech.</p>
+          </div>
+        </div>
+        <div class="hero-signal" aria-label="Protection status">
+          <span class="signal-dot" aria-hidden="true"></span>
+          <strong>Shield Active</strong>
+          <small>6-layer defense stack</small>
         </div>
       </header>
 
-      <ul class="feature-pills" aria-label="Feature highlights">
-        <li>Global Tracker Shield</li>
-        <li>Global Ad Shield</li>
-        <li>YouTube Clean Feed</li>
-        <li>Popup Redirect Shield</li>
-        <li>Flash Banner Guard</li>
-        <li>Live Diagnostics</li>
-      </ul>
+      <section class="signal-strip" aria-label="Coverage highlights">
+        <article>
+          <p>Tracker Filters</p>
+          <strong>EasyPrivacy</strong>
+        </article>
+        <article>
+          <p>Ad Databases</p>
+          <strong>EasyList + AdGuard</strong>
+        </article>
+        <article>
+          <p>YouTube Focus</p>
+          <strong>Sponsorship Cleanup</strong>
+        </article>
+      </section>
 
       <section class="settings-panel" aria-label="Quick settings">
         <label class="toggle-row" for="blockGlobalTrackersToggle">
@@ -109,7 +123,7 @@
       </section>
 
       <p id="statusText" class="hint" aria-live="polite">
-        Edge Canary mobile mode: touch-ready controls with adaptive layout.
+        Premium mode loaded. Toggle shields and refresh active tabs for immediate effect.
       </p>
     </main>
 
