@@ -1,6 +1,7 @@
 const DEFAULT_SETTINGS = Object.freeze({
   blockYoutubeNetworkEnabled: true,
   blockGlobalTrackersEnabled: true,
+  blockRedirectPopupsEnabled: true,
   blockFlashBannersEnabled: true,
   cleanupUiAdsEnabled: true
 });
@@ -11,12 +12,14 @@ const LEGACY_SETTING_KEY_MAP = Object.freeze({
 
 const RULESET_BY_SETTING = Object.freeze({
   blockYoutubeNetworkEnabled: "youtube_core",
-  blockGlobalTrackersEnabled: "easyprivacy_global"
+  blockGlobalTrackersEnabled: "easyprivacy_global",
+  blockRedirectPopupsEnabled: "popup_redirect_shield"
 });
 
 const RULESET_LABELS = Object.freeze({
   youtube_core: "YouTube Core",
-  easyprivacy_global: "EasyPrivacy Global"
+  easyprivacy_global: "EasyPrivacy Global",
+  popup_redirect_shield: "Popup Redirect Shield"
 });
 
 const RULESET_IDS = Object.freeze(Object.values(RULESET_BY_SETTING));
@@ -236,6 +239,17 @@ async function loadStaticRuleCounts() {
         counts.easyprivacy_global = null;
       }
 
+      try {
+        const popupRedirectShield = await readJsonFromRuntime(
+          "rules/popup-redirect-shield.json"
+        );
+        counts.popup_redirect_shield = Array.isArray(popupRedirectShield)
+          ? popupRedirectShield.length
+          : null;
+      } catch {
+        counts.popup_redirect_shield = null;
+      }
+
       return counts;
     })();
   }
@@ -413,7 +427,9 @@ async function updateBadgeState(isEnabled) {
 async function syncBlockingState() {
   const settings = await getSettings();
   const isAnyBlockingEnabled = Boolean(
-    settings.blockYoutubeNetworkEnabled || settings.blockGlobalTrackersEnabled
+    settings.blockYoutubeNetworkEnabled ||
+      settings.blockGlobalTrackersEnabled ||
+      settings.blockRedirectPopupsEnabled
   );
 
   await updateRulesetState(settings);

@@ -37,6 +37,15 @@
         "*://*/*"
       ],
       "js": [
+        "src/content/redirect-popup-guard.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
         "src/content/flash-banner-blocker.js"
       ],
       "run_at": "document_idle"
@@ -62,6 +71,11 @@
         "id": "easyprivacy_global",
         "enabled": true,
         "path": "rules/easyprivacy-global.json"
+      },
+      {
+        "id": "popup_redirect_shield",
+        "enabled": true,
+        "path": "rules/popup-redirect-shield.json"
       }
     ]
   }
