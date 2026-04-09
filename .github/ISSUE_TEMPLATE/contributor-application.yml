@@ -1,0 +1,55 @@
+name: Contributor Application
+description: Apply to become a contributor for ZN blocker
+title: "Contributor Application: <your name>"
+labels:
+  - contributor-application
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in contributing to ZN blocker.
+  - type: input
+    id: name
+    attributes:
+      label: Name / Handle
+      placeholder: your name
+    validations:
+      required: true
+  - type: input
+    id: timezone
+    attributes:
+      label: Timezone
+      placeholder: UTC+X
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Technical Background
+      description: Languages, browser extension experience, and relevant tooling.
+    validations:
+      required: true
+  - type: textarea
+    id: area
+    attributes:
+      label: Proposed Contribution Area
+      description: What parts of the project you want to contribute to.
+      placeholder: rules, ui, diagnostics, release automation, docs, testing
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample Work
+      description: Links to code, pull requests, or repos.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have read CONTRIBUTING.md and agree to follow CODE_OF_CONDUCT.md.
+          required: true
+        - label: I understand this repository is distributed under a non-commercial license.
+          required: true

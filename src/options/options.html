@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>ZN blocker Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero card">
+        <img
+          class="brand-mark"
+          src="../../assets/logo/zn-blocker-mark.svg"
+          alt="ZN blocker logo"
+          width="58"
+          height="58"
+        />
+        <div class="hero-copy">
+          <p class="eyebrow">Control Center</p>
+          <h1>ZN blocker Settings</h1>
+          <p>Modern privacy and ad-control layers with responsive behavior for desktop and Edge Canary mobile.</p>
+        </div>
+        <button id="openDiagnosticsButton" class="hero-button" type="button">Open Diagnostics</button>
+      </header>
+
+      <section class="feature-grid" aria-label="Feature listing">
+        <article class="feature-card">
+          <h2>Global Tracker Shield</h2>
+          <p>Large EasyPrivacy coverage for cross-site tracking and ad-tech requests.</p>
+        </article>
+        <article class="feature-card">
+          <h2>YouTube Clean Stack</h2>
+          <p>Dedicated network rules plus promoted-surface cleanup focused on YouTube.</p>
+        </article>
+        <article class="feature-card">
+          <h2>Flash Banner Guard</h2>
+          <p>Suppresses animated and legacy flash-style banner ad containers.</p>
+        </article>
+        <article class="feature-card">
+          <h2>Live Diagnostics</h2>
+          <p>Review blocked request totals, ruleset status, and reset counters instantly.</p>
+        </article>
+      </section>
+
+      <section class="card settings-card" aria-label="Settings">
+        <h2>Protection Settings</h2>
+
+        <label class="setting-row" for="blockGlobalTrackersToggle">
+          <span class="setting-copy">
+            <strong>Block global trackers (EasyPrivacy)</strong>
+            <small>Applies broad tracker filtering across websites.</small>
+          </span>
+          <span class="switch">
+            <input id="blockGlobalTrackersToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="setting-row" for="blockYoutubeNetworkToggle">
+          <span class="setting-copy">
+            <strong>Block YouTube ad and tracking requests</strong>
+            <small>Targets ad delivery and sponsored telemetry endpoints.</small>
+          </span>
+          <span class="switch">
+            <input id="blockYoutubeNetworkToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="setting-row" for="blockFlashBannersToggle">
+          <span class="setting-copy">
+            <strong>Block flash and animated banner ads</strong>
+            <small>Filters ad iframes, flash objects, and banner heuristics.</small>
+          </span>
+          <span class="switch">
+            <input id="blockFlashBannersToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="setting-row" for="cleanupUiAdsToggle">
+          <span class="setting-copy">
+            <strong>Hide promoted YouTube UI surfaces</strong>
+            <small>Removes sponsored cards, ad slots, and ad-center style modules.</small>
+          </span>
+          <span class="switch">
+            <input id="cleanupUiAdsToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+      </section>
+
+      <section class="card info">
+        <h2>Edge Canary Mobile Integration</h2>
+        <p>
+          This UI is optimized for touch controls, narrow viewports, and safe-area insets.
+          It keeps settings reachable on smaller screens and larger pointer targets for mobile use.
+        </p>
+        <p id="mobileModeText" class="mobile-mode" aria-live="polite"></p>
+      </section>
+
+      <p id="statusText" class="status" aria-live="polite"></p>
+    </main>
+
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

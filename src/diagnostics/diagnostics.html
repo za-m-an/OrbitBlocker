@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>ZN blocker Diagnostics</title>
+    <link rel="stylesheet" href="diagnostics.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero">
+        <img
+          class="brand-mark"
+          src="../../assets/logo/zn-blocker-mark.svg"
+          alt="ZN blocker logo"
+          width="58"
+          height="58"
+        />
+        <div class="hero-copy">
+          <p class="eyebrow">Runtime Analytics</p>
+          <h1>Diagnostics</h1>
+          <p>Inspect blocked request counts by ruleset and extension runtime status.</p>
+          <ul class="diag-tags" aria-label="Diagnostics features">
+            <li>Ruleset Health</li>
+            <li>Live Counters</li>
+            <li>24h Match Window</li>
+          </ul>
+        </div>
+        <div class="actions">
+          <button id="openSettingsButton" type="button" class="neutral">Open Settings</button>
+          <button id="refreshButton" type="button">Refresh</button>
+          <button id="resetButton" type="button" class="danger">Reset Counters</button>
+        </div>
+      </header>
+
+      <section class="card stats">
+        <article>
+          <h2>Total Blocked (since reset)</h2>
+          <p id="totalBlockedValue" class="value">-</p>
+        </article>
+        <article>
+          <h2>Last Updated</h2>
+          <p id="lastUpdatedValue" class="value">-</p>
+        </article>
+        <article>
+          <h2>Listener Status</h2>
+          <p id="listenerStatusValue" class="value">-</p>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Ruleset Counters</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Ruleset</th>
+              <th>Enabled</th>
+              <th>Static Rules</th>
+              <th>Blocked</th>
+            </tr>
+          </thead>
+          <tbody id="rulesetTableBody">
+            <tr>
+              <td colspan="4">Loading diagnostics...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Matched Rules (Last 24h)</h2>
+        <p id="recentSummary" class="muted">Loading recent match summary...</p>
+        <ul id="recentRulesetList" class="list"></ul>
+      </section>
+
+      <p id="statusText" class="status" aria-live="polite"></p>
+    </main>
+
+    <script src="diagnostics.js" type="module"></script>
+  </body>
+</html>

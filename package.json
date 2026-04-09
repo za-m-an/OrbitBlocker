@@ -1,0 +1,12 @@
+{
+  "name": "zn-blocker-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:icons": "powershell -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
+    "build:easyprivacy": "node scripts/build-easyprivacy-rules.mjs",
+    "build:rules": "npm run build:easyprivacy",
+    "build:assets": "npm run build:icons",
+    "build:release": "powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1"
+  }
+}

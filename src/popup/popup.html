@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>ZN blocker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="hero">
+        <img
+          class="hero-mark"
+          src="../../assets/logo/zn-blocker-mark.svg"
+          alt="ZN blocker logo"
+          width="34"
+          height="34"
+        />
+        <div>
+          <h1>ZN blocker</h1>
+          <p class="subtitle">Adaptive protection controls for YouTube and the wider web.</p>
+        </div>
+      </header>
+
+      <ul class="feature-pills" aria-label="Feature highlights">
+        <li>Global Tracker Shield</li>
+        <li>YouTube Clean Feed</li>
+        <li>Flash Banner Guard</li>
+        <li>Live Diagnostics</li>
+      </ul>
+
+      <section class="settings-panel" aria-label="Quick settings">
+        <label class="toggle-row" for="blockGlobalTrackersToggle">
+          <span class="toggle-copy">
+            <strong>Global tracker shield</strong>
+            <small>EasyPrivacy-driven coverage on most websites</small>
+          </span>
+          <span class="switch">
+            <input id="blockGlobalTrackersToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="toggle-row" for="blockYoutubeNetworkToggle">
+          <span class="toggle-copy">
+            <strong>YouTube request filtering</strong>
+            <small>Blocks YouTube ad and sponsored telemetry endpoints</small>
+          </span>
+          <span class="switch">
+            <input id="blockYoutubeNetworkToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="toggle-row" for="blockFlashBannersToggle">
+          <span class="toggle-copy">
+            <strong>Flash banner guard</strong>
+            <small>Hides animated banners and legacy flash ad placements</small>
+          </span>
+          <span class="switch">
+            <input id="blockFlashBannersToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="toggle-row" for="cleanupUiAdsToggle">
+          <span class="toggle-copy">
+            <strong>YouTube visual cleanup</strong>
+            <small>Removes promoted cards and My Ad Center style surfaces</small>
+          </span>
+          <span class="switch">
+            <input id="cleanupUiAdsToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+      </section>
+
+      <section class="quick-actions" aria-label="Actions">
+        <button class="action-button secondary" id="openDiagnosticsButton" type="button">
+          Open Diagnostics
+        </button>
+        <button class="action-button primary" id="openOptionsButton" type="button">
+          Open Settings
+        </button>
+      </section>
+
+      <p id="statusText" class="hint" aria-live="polite">
+        Edge Canary mobile mode: touch-ready controls with adaptive layout.
+      </p>
+    </main>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
