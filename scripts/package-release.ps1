@@ -28,6 +28,7 @@ function New-StagePackage {
   Copy-Item (Join-Path $RepoRoot "rules\easylist-global.meta.json") $stageRulesDir
   Copy-Item (Join-Path $RepoRoot "rules\adguard-base-global.json") $stageRulesDir
   Copy-Item (Join-Path $RepoRoot "rules\adguard-base-global.meta.json") $stageRulesDir
+  Copy-Item (Join-Path $RepoRoot "rules\oem-google-tracking-shield.json") $stageRulesDir
   Copy-Item (Join-Path $RepoRoot "rules\popup-redirect-shield.json") $stageRulesDir
 }
 

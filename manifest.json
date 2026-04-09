@@ -83,6 +83,11 @@
         "path": "rules/adguard-base-global.json"
       },
       {
+        "id": "oem_google_tracking_shield",
+        "enabled": true,
+        "path": "rules/oem-google-tracking-shield.json"
+      },
+      {
         "id": "popup_redirect_shield",
         "enabled": true,
         "path": "rules/popup-redirect-shield.json"

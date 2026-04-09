@@ -2,6 +2,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   blockYoutubeNetworkEnabled: true,
   blockGlobalTrackersEnabled: true,
   blockGlobalAdsEnabled: true,
+  blockOemGoogleTrackingEnabled: true,
   blockRedirectPopupsEnabled: true,
   blockFlashBannersEnabled: true,
   cleanupUiAdsEnabled: true
@@ -15,6 +16,7 @@ const RULESETS_BY_SETTING = Object.freeze({
   blockYoutubeNetworkEnabled: ["youtube_core"],
   blockGlobalTrackersEnabled: ["easyprivacy_global"],
   blockGlobalAdsEnabled: ["easylist_global_ads", "adguard_base_ads"],
+  blockOemGoogleTrackingEnabled: ["oem_google_tracking_shield"],
   blockRedirectPopupsEnabled: ["popup_redirect_shield"]
 });
 
@@ -23,6 +25,7 @@ const RULESET_LABELS = Object.freeze({
   easyprivacy_global: "EasyPrivacy Global",
   easylist_global_ads: "EasyList Global Ads",
   adguard_base_ads: "AdGuard Base Ads",
+  oem_google_tracking_shield: "OEM + Google Tracking Shield",
   popup_redirect_shield: "Popup Redirect Shield"
 });
 
@@ -260,6 +263,17 @@ async function loadStaticRuleCounts() {
       }
 
       try {
+        const oemGoogleTrackingShield = await readJsonFromRuntime(
+          "rules/oem-google-tracking-shield.json"
+        );
+        counts.oem_google_tracking_shield = Array.isArray(oemGoogleTrackingShield)
+          ? oemGoogleTrackingShield.length
+          : null;
+      } catch {
+        counts.oem_google_tracking_shield = null;
+      }
+
+      try {
         const popupRedirectShield = await readJsonFromRuntime(
           "rules/popup-redirect-shield.json"
         );
@@ -450,6 +464,7 @@ async function syncBlockingState() {
     settings.blockYoutubeNetworkEnabled ||
       settings.blockGlobalTrackersEnabled ||
       settings.blockGlobalAdsEnabled ||
+      settings.blockOemGoogleTrackingEnabled ||
       settings.blockRedirectPopupsEnabled
   );
 

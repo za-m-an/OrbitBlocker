@@ -2,20 +2,42 @@ const DEFAULT_SETTINGS = Object.freeze({
   blockYoutubeNetworkEnabled: true,
   blockGlobalTrackersEnabled: true,
   blockGlobalAdsEnabled: true,
+  blockOemGoogleTrackingEnabled: true,
   blockRedirectPopupsEnabled: true,
   blockFlashBannersEnabled: true,
   cleanupUiAdsEnabled: true
 });
 
-const blockGlobalTrackersToggle = document.getElementById("blockGlobalTrackersToggle");
-const blockYoutubeNetworkToggle = document.getElementById("blockYoutubeNetworkToggle");
-const blockGlobalAdsToggle = document.getElementById("blockGlobalAdsToggle");
-const blockFlashBannersToggle = document.getElementById("blockFlashBannersToggle");
-const blockRedirectPopupsToggle = document.getElementById("blockRedirectPopupsToggle");
-const cleanupUiAdsToggle = document.getElementById("cleanupUiAdsToggle");
+const coreShieldToggle = document.getElementById("coreShieldToggle");
+const youtubeShieldToggle = document.getElementById("youtubeShieldToggle");
+const oemGoogleShieldToggle = document.getElementById("oemGoogleShieldToggle");
+const visualShieldToggle = document.getElementById("visualShieldToggle");
 const openDiagnosticsButton = document.getElementById("openDiagnosticsButton");
 const mobileModeText = document.getElementById("mobileModeText");
 const statusText = document.getElementById("statusText");
+
+const TOGGLE_GROUPS = Object.freeze([
+  {
+    element: coreShieldToggle,
+    keys: [
+      "blockGlobalTrackersEnabled",
+      "blockGlobalAdsEnabled",
+      "blockRedirectPopupsEnabled"
+    ]
+  },
+  {
+    element: youtubeShieldToggle,
+    keys: ["blockYoutubeNetworkEnabled", "cleanupUiAdsEnabled"]
+  },
+  {
+    element: oemGoogleShieldToggle,
+    keys: ["blockOemGoogleTrackingEnabled"]
+  },
+  {
+    element: visualShieldToggle,
+    keys: ["blockFlashBannersEnabled", "blockRedirectPopupsEnabled"]
+  }
+]);
 
 let statusTimer = null;
 
@@ -60,20 +82,31 @@ async function openDiagnosticsPage() {
 async function loadSettings() {
   const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
 
-  blockGlobalTrackersToggle.checked = Boolean(settings.blockGlobalTrackersEnabled);
-  blockYoutubeNetworkToggle.checked = Boolean(settings.blockYoutubeNetworkEnabled);
-  blockGlobalAdsToggle.checked = Boolean(settings.blockGlobalAdsEnabled);
-  blockFlashBannersToggle.checked = Boolean(settings.blockFlashBannersEnabled);
-  blockRedirectPopupsToggle.checked = Boolean(settings.blockRedirectPopupsEnabled);
-  cleanupUiAdsToggle.checked = Boolean(settings.cleanupUiAdsEnabled);
+  for (const group of TOGGLE_GROUPS) {
+    if (!group.element) {
+      continue;
+    }
+
+    group.element.checked = group.keys.every((key) => Boolean(settings[key]));
+  }
 }
 
-function wireSetting(toggle, settingKey) {
+function wireSettingGroup(toggle, settingKeys) {
+  if (!toggle) {
+    return;
+  }
+
   toggle.addEventListener("change", async () => {
+    const nextValue = toggle.checked;
+    const nextSettings = {};
+
+    for (const key of settingKeys) {
+      nextSettings[key] = nextValue;
+    }
+
     try {
-      await chrome.storage.sync.set({
-        [settingKey]: toggle.checked
-      });
+      await chrome.storage.sync.set(nextSettings);
+      await loadSettings();
 
       showStatus("Settings saved");
     } catch {
@@ -82,12 +115,9 @@ function wireSetting(toggle, settingKey) {
   });
 }
 
-wireSetting(blockGlobalTrackersToggle, "blockGlobalTrackersEnabled");
-wireSetting(blockYoutubeNetworkToggle, "blockYoutubeNetworkEnabled");
-wireSetting(blockGlobalAdsToggle, "blockGlobalAdsEnabled");
-wireSetting(blockFlashBannersToggle, "blockFlashBannersEnabled");
-wireSetting(blockRedirectPopupsToggle, "blockRedirectPopupsEnabled");
-wireSetting(cleanupUiAdsToggle, "cleanupUiAdsEnabled");
+for (const group of TOGGLE_GROUPS) {
+  wireSettingGroup(group.element, group.keys);
+}
 
 openDiagnosticsButton.addEventListener("click", () => {
   openDiagnosticsPage();

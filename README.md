@@ -6,11 +6,13 @@ ZN blocker is a Manifest V3 browser extension focused on YouTube cleanup, tracke
 
 - Global tracker blocking using generated EasyPrivacy-compatible rules.
 - Global ad blocking using generated EasyList and AdGuard Base rules.
+- OEM mobile telemetry blocking for Samsung, Xiaomi, Oppo, Vivo, and related vendor ad endpoints.
+- Heavier Google analytics/tracking suppression tuned to reduce breakage.
 - YouTube-specific request filtering for ad and telemetry endpoints.
 - My Ad Center and sponsored surface cleanup on YouTube UI.
 - Flash and animated banner ad suppression on general websites.
 - Built-in diagnostics view with ruleset counters and reset controls.
-- Modern responsive popup, settings, and diagnostics pages.
+- Simplified premium control layout with grouped shield toggles.
 
 ## Browser Support
 
