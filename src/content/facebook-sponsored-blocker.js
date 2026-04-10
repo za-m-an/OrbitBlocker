@@ -44,7 +44,9 @@ const CARD_CONTAINER_HINT_SELECTORS = [
 
 const SPONSORED_TEXT_REGEX = /\bsponsored\b/i;
 const CTA_TEXT_REGEX =
-  /\b(learn more|shop now|sign up|book now|get quote|download|register|apply now|watch more|see more)\b/i;
+  /\b(learn more|shop now|sign up|book now|get quote|download|register|apply now|watch more|see more|order now|send message|install now|play game)\b/i;
+const OBFUSCATED_SPONSORED_REGEX = /s\W*p\W*o\W*n\W*s\W*o\W*r\W*e\W*d/i;
+const DOMAIN_CAPTION_REGEX = /\b[a-z0-9-]+\.(com|net|org|io|co|me|app|xyz|info|biz)\b/i;
 const MAX_SCAN_CANDIDATES = 700;
 
 let shieldEnabled = true;
@@ -55,6 +57,28 @@ function normalizeText(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function hasSponsoredToken(text) {
+  const normalized = normalizeText(text || "").toLowerCase();
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (SPONSORED_TEXT_REGEX.test(normalized)) {
+    return true;
+  }
+
+  if (OBFUSCATED_SPONSORED_REGEX.test(normalized)) {
+    return true;
+  }
+
+  if (normalized.includes("স্পন্সরড") || normalized.includes("স্পন্সর্ড")) {
+    return true;
+  }
+
+  return false;
 }
 
 function hideElement(element) {
@@ -247,11 +271,11 @@ function hasLeadingSponsoredText(container) {
     return false;
   }
 
-  if (/^sponsored(?:\b|\s|\u00b7|\.|:)/i.test(text)) {
+  if (/^\s*sponsored(?:\b|\s|\u00b7|\.|:)/i.test(text)) {
     return true;
   }
 
-  return SPONSORED_TEXT_REGEX.test(text);
+  return hasSponsoredToken(text);
 }
 
 function hasSponsoredByline(container) {
@@ -279,11 +303,7 @@ function hasSponsoredByline(container) {
       continue;
     }
 
-    if (/^sponsored(?:\b|\s|\u00b7|\.|:)/i.test(text)) {
-      return true;
-    }
-
-    if (text === "Sponsored") {
+    if (hasSponsoredToken(text)) {
       return true;
     }
   }
@@ -312,7 +332,7 @@ function hasSponsoredKeywordNode(container) {
       continue;
     }
 
-    if (text === "Sponsored" || /^sponsored(?:\b|\s|\u00b7|\.|:)/i.test(text)) {
+    if (hasSponsoredToken(text)) {
       return true;
     }
   }
@@ -362,11 +382,25 @@ function hasSponsoredHeaderPattern(container) {
 
   const lead = text.slice(0, 240);
 
-  if (!SPONSORED_TEXT_REGEX.test(lead)) {
+  if (!hasSponsoredToken(lead)) {
     return false;
   }
 
-  return /^(?:.{0,140})\bsponsored\b/i.test(lead);
+  return /^(?:.{0,140})(?:sponsored|s\W*p\W*o\W*n\W*s\W*o\W*r\W*e\W*d)/i.test(lead);
+}
+
+function hasExternalDomainCaption(container) {
+  if (!(container instanceof Element)) {
+    return false;
+  }
+
+  const text = normalizeText(container.textContent || "").slice(0, 420);
+
+  if (!text) {
+    return false;
+  }
+
+  return DOMAIN_CAPTION_REGEX.test(text);
 }
 
 function findLikelyCardContainer(node) {
@@ -410,8 +444,16 @@ function isLikelySponsoredFeedUnit(unit) {
 
   const hasTrafficSignal =
     hasExternalDestinationLink(unit) || hasLynxOutboundSignal(unit) || hasAdDisclosureLink(unit);
+  const hasCta = hasAdCtaButton(unit);
+  const hasDomainCaption = hasExternalDomainCaption(unit);
+  const hasMedia = hasMediaCreative(unit);
 
-  if (!hasTrafficSignal && !hasAdCtaButton(unit) && !hasMediaCreative(unit)) {
+  if (!hasSponsoredSignal) {
+    // Fallback path for heavily obfuscated sponsored cards: CTA + media + external signal.
+    return hasCta && hasMedia && (hasTrafficSignal || hasDomainCaption);
+  }
+
+  if (!hasTrafficSignal && !hasCta && !hasMedia) {
     return false;
   }
 
@@ -419,7 +461,7 @@ function isLikelySponsoredFeedUnit(unit) {
     return true;
   }
 
-  if (hasLeadingSponsoredText(unit) && (hasTrafficSignal || hasAdCtaButton(unit))) {
+  if (hasLeadingSponsoredText(unit) && (hasTrafficSignal || hasCta || hasDomainCaption)) {
     return true;
   }
 
