@@ -39,8 +39,8 @@
           <strong>Network + UI Sponsorship Cleanup</strong>
         </article>
         <article class="signal-card">
-          <p>OEM + Analytics Privacy</p>
-          <strong>Samsung Xiaomi Oppo Vivo + Google Tracking</strong>
+          <p>Facebook Shield</p>
+          <strong>Sponsored Feed Cleanup + Tracking Block</strong>
         </article>
       </section>
 
@@ -56,6 +56,10 @@
         <article class="feature-card">
           <h2>OEM + Google Tracking Shield</h2>
           <p>Targets mobile OEM telemetry and high-volume Google analytics/tracking endpoints.</p>
+        </article>
+        <article class="feature-card">
+          <h2>Facebook Sponsored + Tracking Shield</h2>
+          <p>Hides sponsored Facebook feed units and blocks common Facebook tracking endpoints.</p>
         </article>
         <article class="feature-card">
           <h2>Visual Interruption Shield</h2>
@@ -84,6 +88,17 @@
           </span>
           <span class="switch">
             <input id="youtubeShieldToggle" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true"></span>
+          </span>
+        </label>
+
+        <label class="setting-row" for="facebookShieldToggle">
+          <span class="setting-copy">
+            <strong>Facebook sponsored shield</strong>
+            <small>Blocks Facebook sponsored feed units and tracking requests.</small>
+          </span>
+          <span class="switch">
+            <input id="facebookShieldToggle" type="checkbox" />
             <span class="switch-ui" aria-hidden="true"></span>
           </span>
         </label>
@@ -168,6 +183,28 @@
               <button id="addDenyHostButton" type="button" class="host-add-button">Add</button>
             </div>
             <ul id="denyHostList" class="host-list" aria-label="Deny list hosts"></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="card manual-rules-card" aria-label="Manual rules controls">
+        <h2>Manual Rules</h2>
+        <p class="host-help">
+          Rules saved from right-click Block this content appear here. You can remove any host block or element hide selector.
+        </p>
+        <button id="refreshManualRulesButton" type="button" class="hero-button manual-refresh-button">
+          Refresh Manual Rules
+        </button>
+
+        <div class="host-grid">
+          <article class="host-editor">
+            <h3>Manual Host Blocks</h3>
+            <ul id="manualHostRuleList" class="host-list" aria-label="Manual host rules"></ul>
+          </article>
+
+          <article class="host-editor">
+            <h3>Manual Hide Rules</h3>
+            <ul id="manualHideRuleList" class="host-list" aria-label="Manual hide rules"></ul>
           </article>
         </div>
       </section>

@@ -9,6 +9,11 @@ const URL_ATTR_KEYS = ["src", "href", "data-src", "data-href", "data-url", "acti
 const MAX_CONTEXT_URLS = 28;
 const MAX_SELECTOR_DEPTH = 5;
 const HIDE_STYLE_ID = "zn-blocker-manual-hide-style";
+const TOAST_STYLE_ID = "zn-blocker-manual-toast-style";
+const TOAST_NODE_ID = "zn-blocker-manual-toast";
+const TOAST_VISIBLE_CLASS = "zn-blocker-toast-visible";
+const TOAST_ERROR_CLASS = "zn-blocker-toast-error";
+const TOAST_HIDE_DELAY_MS = 2400;
 
 const cssEscape =
   globalThis.CSS?.escape ||
@@ -19,6 +24,7 @@ const cssEscape =
 
 let lastContextTarget = null;
 let lastAppliedPageUrl = "";
+let toastTimer = null;
 
 function parseHttpUrl(rawUrl, baseUrl = window.location.href) {
   if (typeof rawUrl !== "string" || !rawUrl.trim()) {
@@ -171,6 +177,85 @@ function ensureHideStyleNode() {
   return styleNode;
 }
 
+function ensureToastStyleNode() {
+  let styleNode = document.getElementById(TOAST_STYLE_ID);
+
+  if (styleNode instanceof HTMLStyleElement) {
+    return styleNode;
+  }
+
+  styleNode = document.createElement("style");
+  styleNode.id = TOAST_STYLE_ID;
+  styleNode.type = "text/css";
+  styleNode.textContent = `
+    #${TOAST_NODE_ID} {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 2147483647;
+      max-width: min(360px, calc(100vw - 30px));
+      border-radius: 12px;
+      border: 1px solid rgba(12, 98, 88, 0.6);
+      background: linear-gradient(145deg, rgba(19, 137, 118, 0.97), rgba(12, 98, 88, 0.97));
+      color: #ffffff;
+      font: 600 13px/1.35 "Segoe UI", "Trebuchet MS", sans-serif;
+      letter-spacing: 0.01em;
+      padding: 10px 12px;
+      box-shadow: 0 14px 28px rgba(6, 31, 28, 0.35);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    #${TOAST_NODE_ID}.${TOAST_VISIBLE_CLASS} {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #${TOAST_NODE_ID}.${TOAST_ERROR_CLASS} {
+      border-color: rgba(146, 31, 31, 0.7);
+      background: linear-gradient(145deg, rgba(183, 41, 41, 0.97), rgba(146, 31, 31, 0.97));
+    }
+  `;
+
+  document.documentElement.appendChild(styleNode);
+  return styleNode;
+}
+
+function ensureToastNode() {
+  ensureToastStyleNode();
+
+  let toastNode = document.getElementById(TOAST_NODE_ID);
+
+  if (toastNode instanceof HTMLDivElement) {
+    return toastNode;
+  }
+
+  toastNode = document.createElement("div");
+  toastNode.id = TOAST_NODE_ID;
+  toastNode.setAttribute("role", "status");
+  toastNode.setAttribute("aria-live", "polite");
+  document.documentElement.appendChild(toastNode);
+  return toastNode;
+}
+
+function showActionToast(message, variant = "success") {
+  const toastNode = ensureToastNode();
+  toastNode.textContent = String(message || "Action complete");
+  toastNode.classList.toggle(TOAST_ERROR_CLASS, variant === "error");
+  toastNode.classList.add(TOAST_VISIBLE_CLASS);
+
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+
+  toastTimer = setTimeout(() => {
+    toastNode.classList.remove(TOAST_VISIBLE_CLASS);
+    toastTimer = null;
+  }, TOAST_HIDE_DELAY_MS);
+}
+
 function applyHideSelectors(selectors) {
   const styleNode = ensureHideStyleNode();
 
@@ -252,6 +337,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === "MANUAL_HIDE_RULES_UPDATED") {
     refreshManualHideRules();
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === "SHOW_MANUAL_BLOCK_TOAST") {
+    showActionToast(message.message, message.variant);
     sendResponse({ ok: true });
   }
 });

@@ -1,5 +1,6 @@
 const DEFAULT_SETTINGS = Object.freeze({
   blockYoutubeNetworkEnabled: true,
+  blockFacebookShieldEnabled: true,
   blockGlobalTrackersEnabled: true,
   blockGlobalAdsEnabled: true,
   blockOemGoogleTrackingEnabled: true,
@@ -17,6 +18,7 @@ const LEGACY_SETTING_KEY_MAP = Object.freeze({
 
 const RULESETS_BY_SETTING = Object.freeze({
   blockYoutubeNetworkEnabled: ["youtube_core"],
+  blockFacebookShieldEnabled: ["facebook_tracking_shield"],
   blockGlobalTrackersEnabled: ["easyprivacy_global"],
   blockGlobalAdsEnabled: ["easylist_global_ads", "adguard_base_ads"],
   blockOemGoogleTrackingEnabled: ["oem_google_tracking_shield"],
@@ -25,6 +27,7 @@ const RULESETS_BY_SETTING = Object.freeze({
 
 const RULESET_LABELS = Object.freeze({
   youtube_core: "YouTube Core",
+  facebook_tracking_shield: "Facebook Sponsored + Tracking Shield",
   easyprivacy_global: "EasyPrivacy Global",
   easylist_global_ads: "EasyList Global Ads",
   adguard_base_ads: "AdGuard Base Ads",
@@ -356,6 +359,17 @@ async function loadStaticRuleCounts() {
         counts.youtube_core = Array.isArray(youtubeCore) ? youtubeCore.length : null;
       } catch {
         counts.youtube_core = null;
+      }
+
+      try {
+        const facebookTrackingShield = await readJsonFromRuntime(
+          "rules/facebook-tracking-shield.json"
+        );
+        counts.facebook_tracking_shield = Array.isArray(facebookTrackingShield)
+          ? facebookTrackingShield.length
+          : null;
+      } catch {
+        counts.facebook_tracking_shield = null;
       }
 
       try {
@@ -1242,6 +1256,114 @@ async function getManualHideRulesForPage(pageUrl) {
   return [...selectors];
 }
 
+async function getManualRulesSnapshot() {
+  const state = await getManualBlockState();
+
+  const manualHostRules = Object.entries(state.hostRules)
+    .map(([host, value]) => ({
+      host,
+      ruleId: value.ruleId,
+      addedAt: value.addedAt,
+      sourcePageHost: value.sourcePageHost || ""
+    }))
+    .sort((entryA, entryB) => entryB.addedAt - entryA.addedAt);
+
+  const manualHideRules = Object.entries(state.hideRulesBySite)
+    .flatMap(([siteHost, selectors]) =>
+      selectors.map((selector) => ({
+        siteHost,
+        selector
+      }))
+    )
+    .slice(0, MANUAL_MAX_HIDE_SITES * MANUAL_MAX_HIDE_RULES_PER_SITE);
+
+  return {
+    manualHostRules,
+    manualHideRules
+  };
+}
+
+async function removeManualHostRule(host) {
+  const normalizedHost = normalizeHost(host);
+
+  if (!normalizedHost) {
+    return {
+      removed: false,
+      reason: "invalid-host"
+    };
+  }
+
+  const state = await getManualBlockState();
+  const entry = state.hostRules[normalizedHost];
+
+  if (!entry) {
+    return {
+      removed: false,
+      reason: "not-found"
+    };
+  }
+
+  try {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      addRules: [],
+      removeRuleIds: [entry.ruleId]
+    });
+  } catch (error) {
+    console.warn("Manual host rule removal failed", normalizedHost, error);
+    return {
+      removed: false,
+      reason: "dnr-update-failed"
+    };
+  }
+
+  delete state.hostRules[normalizedHost];
+  scheduleManualBlockPersist();
+
+  return {
+    removed: true,
+    reason: "removed"
+  };
+}
+
+async function removeManualHideRule(siteHost, rawSelector) {
+  const normalizedSiteHost = normalizeHost(siteHost);
+  const selector = normalizeManualHideSelector(rawSelector);
+
+  if (!normalizedSiteHost || !selector) {
+    return {
+      removed: false,
+      reason: "invalid-input"
+    };
+  }
+
+  const state = await getManualBlockState();
+  const existing = Array.isArray(state.hideRulesBySite[normalizedSiteHost])
+    ? state.hideRulesBySite[normalizedSiteHost]
+    : [];
+
+  if (existing.length === 0 || !existing.includes(selector)) {
+    return {
+      removed: false,
+      reason: "not-found"
+    };
+  }
+
+  const next = existing.filter((entry) => entry !== selector);
+
+  if (next.length === 0) {
+    delete state.hideRulesBySite[normalizedSiteHost];
+  } else {
+    state.hideRulesBySite[normalizedSiteHost] = next;
+  }
+
+  scheduleManualBlockPersist();
+
+  return {
+    removed: true,
+    reason: "removed"
+  };
+}
+
 async function hydrateManualStateFromDynamicRules() {
   if (manualBlockingHydrated) {
     return;
@@ -1615,6 +1737,22 @@ async function notifyManualHideRulesUpdated(tabId, pageUrl) {
   }
 }
 
+async function notifyManualActionToast(tabId, message, variant = "info") {
+  if (!Number.isInteger(tabId) || typeof chrome.tabs?.sendMessage !== "function") {
+    return;
+  }
+
+  try {
+    await chrome.tabs.sendMessage(tabId, {
+      type: "SHOW_MANUAL_BLOCK_TOAST",
+      message: String(message || "Action complete"),
+      variant: variant === "error" ? "error" : "success"
+    });
+  } catch {
+    // Ignore tabs that are not ready for messaging.
+  }
+}
+
 async function handleContextMenuBlockContentClick(info, tab) {
   const tabId = Number.isInteger(tab?.id) ? tab.id : null;
   const contextTarget = tabId === null ? null : await tryReadLastContextTarget(tabId);
@@ -1668,11 +1806,41 @@ async function handleContextMenuBlockContentClick(info, tab) {
   const blockedAny = manualHostsAdded > 0 || manualHostsExisting > 0 || hideRuleAdded;
 
   if (!blockedAny) {
+    if (tabId !== null) {
+      await notifyManualActionToast(
+        tabId,
+        "No blockable target found. Try right-clicking directly on the ad or popup frame.",
+        "error"
+      );
+    }
+
     console.info("Manual block skipped: no safe target extracted", {
       pageUrl,
       contextUrlCount: candidateUrls.length
     });
     return;
+  }
+
+  if (tabId !== null) {
+    const messageParts = [];
+
+    if (manualHostsAdded > 0) {
+      messageParts.push(`Blocked ${manualHostsAdded} host${manualHostsAdded === 1 ? "" : "s"}`);
+    }
+
+    if (hideRuleAdded) {
+      messageParts.push("stored hide rule");
+    }
+
+    if (manualHostsAdded === 0 && manualHostsExisting > 0 && !hideRuleAdded) {
+      messageParts.push("target already blocked");
+    }
+
+    await notifyManualActionToast(
+      tabId,
+      messageParts.length > 0 ? messageParts.join(" | ") : "Manual block applied",
+      "success"
+    );
   }
 
   console.info("Manual block applied", {
@@ -1836,6 +2004,7 @@ async function syncBlockingState() {
   const settings = await getSettings();
   const isAnyBlockingEnabled = Boolean(
     settings.blockYoutubeNetworkEnabled ||
+      settings.blockFacebookShieldEnabled ||
       settings.blockGlobalTrackersEnabled ||
       settings.blockGlobalAdsEnabled ||
       settings.blockOemGoogleTrackingEnabled ||
@@ -1928,6 +2097,65 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({
         ok: true,
         selectors
+      });
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
+  }
+
+  if (message.type === "GET_MANUAL_RULES_SNAPSHOT") {
+    (async () => {
+      const snapshot = await getManualRulesSnapshot();
+
+      sendResponse({
+        ok: true,
+        snapshot
+      });
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
+  }
+
+  if (message.type === "REMOVE_MANUAL_HOST_RULE") {
+    (async () => {
+      const host = typeof message.host === "string" ? message.host : "";
+      const outcome = await removeManualHostRule(host);
+
+      sendResponse({
+        ok: outcome.removed,
+        removed: outcome.removed,
+        reason: outcome.reason
+      });
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
+  }
+
+  if (message.type === "REMOVE_MANUAL_HIDE_RULE") {
+    (async () => {
+      const siteHost = typeof message.siteHost === "string" ? message.siteHost : "";
+      const selector = typeof message.selector === "string" ? message.selector : "";
+      const outcome = await removeManualHideRule(siteHost, selector);
+
+      sendResponse({
+        ok: outcome.removed,
+        removed: outcome.removed,
+        reason: outcome.reason
       });
     })().catch((error) => {
       sendResponse({

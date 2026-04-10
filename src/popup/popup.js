@@ -1,5 +1,6 @@
 const DEFAULT_SETTINGS = Object.freeze({
   blockYoutubeNetworkEnabled: true,
+  blockFacebookShieldEnabled: true,
   blockGlobalTrackersEnabled: true,
   blockGlobalAdsEnabled: true,
   blockOemGoogleTrackingEnabled: true,
@@ -13,6 +14,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 const coreShieldToggle = document.getElementById("coreShieldToggle");
 const youtubeShieldToggle = document.getElementById("youtubeShieldToggle");
+const facebookShieldToggle = document.getElementById("facebookShieldToggle");
 const oemGoogleShieldToggle = document.getElementById("oemGoogleShieldToggle");
 const visualShieldToggle = document.getElementById("visualShieldToggle");
 const adaptiveShieldToggle = document.getElementById("adaptiveShieldToggle");
@@ -32,6 +34,10 @@ const TOGGLE_GROUPS = Object.freeze([
   {
     element: youtubeShieldToggle,
     keys: ["blockYoutubeNetworkEnabled", "cleanupUiAdsEnabled"]
+  },
+  {
+    element: facebookShieldToggle,
+    keys: ["blockFacebookShieldEnabled"]
   },
   {
     element: oemGoogleShieldToggle,

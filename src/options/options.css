@@ -372,6 +372,19 @@ body {
   margin-bottom: 14px;
 }
 
+.manual-rules-card {
+  margin-bottom: 14px;
+}
+
+.manual-refresh-button {
+  margin-top: 10px;
+  min-width: 0;
+  min-height: 40px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 0.75rem;
+}
+
 .host-lists-card > h2 {
   margin: 0;
   font-size: 1.04rem;
@@ -455,6 +468,10 @@ body {
   background: rgba(255, 255, 255, 0.92);
   padding: 7px 8px;
   font-size: 0.8rem;
+}
+
+.host-item span {
+  overflow-wrap: anywhere;
 }
 
 .host-item button {

@@ -78,6 +78,15 @@
         "src/content/youtube-cleanup.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*.facebook.com/*"
+      ],
+      "js": [
+        "src/content/facebook-sponsored-blocker.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "declarative_net_request": {
@@ -86,6 +95,11 @@
         "id": "youtube_core",
         "enabled": true,
         "path": "rules/youtube-core.json"
+      },
+      {
+        "id": "facebook_tracking_shield",
+        "enabled": true,
+        "path": "rules/facebook-tracking-shield.json"
       },
       {
         "id": "easyprivacy_global",

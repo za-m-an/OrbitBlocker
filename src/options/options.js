@@ -1,5 +1,6 @@
 const DEFAULT_SETTINGS = Object.freeze({
   blockYoutubeNetworkEnabled: true,
+  blockFacebookShieldEnabled: true,
   blockGlobalTrackersEnabled: true,
   blockGlobalAdsEnabled: true,
   blockOemGoogleTrackingEnabled: true,
@@ -15,6 +16,7 @@ const ADAPTIVE_REFRESH_INTERVAL_MS = 7000;
 
 const coreShieldToggle = document.getElementById("coreShieldToggle");
 const youtubeShieldToggle = document.getElementById("youtubeShieldToggle");
+const facebookShieldToggle = document.getElementById("facebookShieldToggle");
 const oemGoogleShieldToggle = document.getElementById("oemGoogleShieldToggle");
 const visualShieldToggle = document.getElementById("visualShieldToggle");
 const adaptiveShieldToggle = document.getElementById("adaptiveShieldToggle");
@@ -30,6 +32,9 @@ const allowHostList = document.getElementById("allowHostList");
 const denyHostInput = document.getElementById("denyHostInput");
 const addDenyHostButton = document.getElementById("addDenyHostButton");
 const denyHostList = document.getElementById("denyHostList");
+const refreshManualRulesButton = document.getElementById("refreshManualRulesButton");
+const manualHostRuleList = document.getElementById("manualHostRuleList");
+const manualHideRuleList = document.getElementById("manualHideRuleList");
 const mobileModeText = document.getElementById("mobileModeText");
 const statusText = document.getElementById("statusText");
 
@@ -45,6 +50,10 @@ const TOGGLE_GROUPS = Object.freeze([
   {
     element: youtubeShieldToggle,
     keys: ["blockYoutubeNetworkEnabled", "cleanupUiAdsEnabled"]
+  },
+  {
+    element: facebookShieldToggle,
+    keys: ["blockFacebookShieldEnabled"]
   },
   {
     element: oemGoogleShieldToggle,
@@ -64,6 +73,8 @@ let statusTimer = null;
 let adaptiveRefreshTimer = null;
 let allowlistHosts = [];
 let denylistHosts = [];
+let manualHostRules = [];
+let manualHideRules = [];
 
 function formatNumber(value) {
   return new Intl.NumberFormat().format(Number(value) || 0);
@@ -168,6 +179,138 @@ function renderHostList(container, hosts, listType) {
 function renderHostLists() {
   renderHostList(allowHostList, allowlistHosts, "allow");
   renderHostList(denyHostList, denylistHosts, "deny");
+}
+
+function formatTimestamp(value) {
+  if (typeof value !== "number" || value <= 0) {
+    return "unknown time";
+  }
+
+  return new Date(value).toLocaleString();
+}
+
+function renderManualRules() {
+  manualHostRuleList.innerHTML = "";
+  manualHideRuleList.innerHTML = "";
+
+  if (manualHostRules.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "host-empty";
+    empty.textContent = "No manual host blocks yet";
+    manualHostRuleList.appendChild(empty);
+  } else {
+    for (const entry of manualHostRules) {
+      const item = document.createElement("li");
+      item.className = "host-item";
+
+      const label = document.createElement("span");
+      const sourceSuffix = entry.sourcePageHost ? ` from ${entry.sourcePageHost}` : "";
+      label.textContent = `${entry.host}${sourceSuffix} (${formatTimestamp(entry.addedAt)})`;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", () => {
+        removeManualHostRule(entry.host);
+      });
+
+      item.append(label, removeButton);
+      manualHostRuleList.appendChild(item);
+    }
+  }
+
+  if (manualHideRules.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "host-empty";
+    empty.textContent = "No manual hide rules yet";
+    manualHideRuleList.appendChild(empty);
+  } else {
+    for (const entry of manualHideRules) {
+      const item = document.createElement("li");
+      item.className = "host-item";
+
+      const label = document.createElement("span");
+      label.textContent = `${entry.siteHost}: ${entry.selector}`;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", () => {
+        removeManualHideRule(entry.siteHost, entry.selector);
+      });
+
+      item.append(label, removeButton);
+      manualHideRuleList.appendChild(item);
+    }
+  }
+}
+
+async function refreshManualRules(showMessage = false) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "GET_MANUAL_RULES_SNAPSHOT"
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Manual rules request failed");
+    }
+
+    manualHostRules = Array.isArray(response.snapshot?.manualHostRules)
+      ? response.snapshot.manualHostRules
+      : [];
+    manualHideRules = Array.isArray(response.snapshot?.manualHideRules)
+      ? response.snapshot.manualHideRules
+      : [];
+
+    renderManualRules();
+
+    if (showMessage) {
+      showStatus("Manual rules refreshed");
+    }
+  } catch (error) {
+    if (showMessage) {
+      showStatus(error.message || String(error), true);
+    }
+  }
+}
+
+async function removeManualHostRule(host) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "REMOVE_MANUAL_HOST_RULE",
+      host
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Unable to remove manual host rule");
+    }
+
+    await refreshManualRules(false);
+    await refreshAdaptiveSummary(false);
+    showStatus("Manual host rule removed");
+  } catch (error) {
+    showStatus(error.message || String(error), true);
+  }
+}
+
+async function removeManualHideRule(siteHost, selector) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "REMOVE_MANUAL_HIDE_RULE",
+      siteHost,
+      selector
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Unable to remove manual hide rule");
+    }
+
+    await refreshManualRules(false);
+    await refreshAdaptiveSummary(false);
+    showStatus("Manual hide rule removed");
+  } catch (error) {
+    showStatus(error.message || String(error), true);
+  }
 }
 
 function renderAdaptiveSummary(summary) {
@@ -350,6 +493,10 @@ denyHostInput.addEventListener("keydown", (event) => {
   }
 });
 
+refreshManualRulesButton.addEventListener("click", () => {
+  refreshManualRules(true);
+});
+
 openDiagnosticsButton.addEventListener("click", () => {
   openDiagnosticsPage();
 });
@@ -359,6 +506,7 @@ window.addEventListener("resize", updateMobileModeText);
 updateMobileModeText();
 loadSettings();
 refreshAdaptiveSummary(false);
+refreshManualRules(false);
 
 adaptiveRefreshTimer = setInterval(() => {
   refreshAdaptiveSummary(false);
