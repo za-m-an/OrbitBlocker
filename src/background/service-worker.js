@@ -3,6 +3,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   blockGlobalTrackersEnabled: true,
   blockGlobalAdsEnabled: true,
   blockOemGoogleTrackingEnabled: true,
+  blockAutoLearningEnabled: true,
   blockRedirectPopupsEnabled: true,
   blockFlashBannersEnabled: true,
   cleanupUiAdsEnabled: true
@@ -38,6 +39,86 @@ const DIAGNOSTICS_STORAGE_KEY = "diagnosticsState";
 const DIAGNOSTICS_FLUSH_DELAY_MS = 1500;
 const RECENT_MATCH_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 
+const AUTO_LEARN_STORAGE_KEY = "autoLearnState";
+const AUTO_LEARN_FLUSH_DELAY_MS = 2000;
+const AUTO_LEARN_RULE_ID_START = 200000;
+const AUTO_LEARN_MAX_DYNAMIC_RULES = 1200;
+const AUTO_LEARN_MAX_CANDIDATES = 2000;
+const AUTO_LEARN_MAX_INITIATOR_SITES = 8;
+const AUTO_LEARN_MIN_SCORE = 35;
+const AUTO_LEARN_PROMOTE_SCORE = 70;
+const AUTO_LEARN_PROMOTE_HITS = 4;
+const AUTO_LEARN_PROMOTE_SITE_COUNT = 2;
+const AUTO_LEARN_DEDUPE_WINDOW_MS = 30000;
+const AUTO_LEARN_DEDUPE_CACHE_MAX = 3000;
+
+const AUTO_LEARN_TRACKING_HOST_SUFFIXES = Object.freeze([
+  "doubleclick.net",
+  "googlesyndication.com",
+  "googleadservices.com",
+  "google-analytics.com",
+  "googletagmanager.com",
+  "google-analytics.cn",
+  "app-measurement.com",
+  "adservice.google.com",
+  "analytics.google.com",
+  "stats.g.doubleclick.net",
+  "analytics.yahoo.com",
+  "analytics.twitter.com",
+  "analytics.tiktok.com",
+  "pixel.facebook.com",
+  "connect.facebook.net",
+  "ads.facebook.com",
+  "adnxs.com",
+  "criteo.com",
+  "taboola.com",
+  "outbrain.com",
+  "scorecardresearch.com",
+  "quantserve.com",
+  "adroll.com",
+  "branch.io",
+  "adjust.com",
+  "tracking.miui.com",
+  "tracking.intl.miui.com",
+  "api.ad.xiaomi.com",
+  "sdkconfig.ad.xiaomi.com",
+  "ad.intl.xiaomi.com",
+  "adsfs.oppomobile.com",
+  "adx.ads.oppomobile.com",
+  "adsfs.heytapmobi.com",
+  "adx.ads.heytapmobi.com",
+  "api.ads.realmemobile.com",
+  "adlog.vivo.com.cn",
+  "adreq.vivo.com.cn",
+  "ads.vivo.com.cn",
+  "samsungads.com",
+  "samsungacr.com",
+  "ads.samsung.com",
+  "ads.lenovo.com",
+  "adapi.lenovomm.com",
+  "ad.huawei.com",
+  "browser.events.data.microsoft.com",
+  "mobile.events.data.microsoft.com",
+  "telemetry.microsoft.com",
+  "amazon-adsystem.com",
+  "fls-na.amazon-adsystem.com",
+  "aax-us-east.amazon-adsystem.com"
+]);
+
+const AUTO_LEARN_HOST_SIGNAL_REGEX =
+  /(^|[.-])(ad|ads|adserver|adservice|analytics|track|tracking|trk|telemetry|metrics|pixel|beacon|doubleclick|sponsor)([.-]|$)/i;
+const AUTO_LEARN_PATH_SIGNAL_REGEX =
+  /(collect|tracking|analytics|telemetry|metrics|beacon|pixel|viewthrough|conversion|adclick|adservice|doubleclick|gtm\.js|gtag\/js|aclk)/i;
+
+const AUTO_LEARN_RESOURCE_TYPES = Object.freeze([
+  "script",
+  "image",
+  "xmlhttprequest",
+  "ping",
+  "sub_frame",
+  "other"
+]);
+
 let diagnosticsStatePromise = null;
 let diagnosticsFlushTimer = null;
 let staticRuleCountPromise = null;
@@ -46,6 +127,14 @@ let diagnosticsListenerStatus = {
   available: false,
   error: ""
 };
+
+let autoLearnStatePromise = null;
+let autoLearnFlushTimer = null;
+let autoLearnMutationQueue = Promise.resolve();
+let autoLearnDedupeCache = new Map();
+let autoLearnWebRequestListener = null;
+let autoLearningEnabled = true;
+let autoLearningHydrated = false;
 
 function toMessageError(error) {
   if (error instanceof Error) {
@@ -337,14 +426,23 @@ async function getEnabledRulesetIds() {
 
 async function buildDiagnosticsSnapshot() {
   await initializeDiagnostics();
+  await initializeAutoLearning();
 
-  const [settings, enabledRulesetIds, diagnosticsState, staticRuleCounts, recentMatchedRules] =
+  const [
+    settings,
+    enabledRulesetIds,
+    diagnosticsState,
+    staticRuleCounts,
+    recentMatchedRules,
+    autoLearning
+  ] =
     await Promise.all([
       getSettings(),
       getEnabledRulesetIds(),
       getDiagnosticsState(),
       loadStaticRuleCounts(),
-      getRecentMatchedRulesSummary()
+      getRecentMatchedRulesSummary(),
+      getAutoLearningSummary()
     ]);
 
   const enabledSet = new Set(enabledRulesetIds);
@@ -369,7 +467,8 @@ async function buildDiagnosticsSnapshot() {
     listener: {
       ...diagnosticsListenerStatus
     },
-    recentMatchedRules
+    recentMatchedRules,
+    autoLearning
   };
 }
 
@@ -382,6 +481,589 @@ async function resetDiagnosticsCounters() {
   }
 
   await persistDiagnosticsState();
+}
+
+function createAutoLearnState() {
+  return {
+    nextRuleId: AUTO_LEARN_RULE_ID_START,
+    candidates: {},
+    promoted: {}
+  };
+}
+
+function normalizeAutoLearnCandidate(rawCandidate) {
+  if (!rawCandidate || typeof rawCandidate !== "object") {
+    return null;
+  }
+
+  const host = typeof rawCandidate.host === "string" ? rawCandidate.host.toLowerCase() : "";
+
+  if (!host || !/^[a-z0-9.-]+$/.test(host)) {
+    return null;
+  }
+
+  const siteKeys = Array.isArray(rawCandidate.siteKeys)
+    ? rawCandidate.siteKeys.filter((siteKey) => typeof siteKey === "string").slice(0, AUTO_LEARN_MAX_INITIATOR_SITES)
+    : [];
+
+  return {
+    host,
+    hits: toNonNegativeInteger(rawCandidate.hits, 0),
+    maxScore: toNonNegativeInteger(rawCandidate.maxScore, 0),
+    firstSeen: toNonNegativeInteger(rawCandidate.firstSeen, Date.now()),
+    lastSeen: toNonNegativeInteger(rawCandidate.lastSeen, Date.now()),
+    siteKeys,
+    sources: {
+      network: toNonNegativeInteger(rawCandidate.sources?.network, 0),
+      page: toNonNegativeInteger(rawCandidate.sources?.page, 0)
+    }
+  };
+}
+
+function normalizeAutoLearnState(rawState) {
+  const fallback = createAutoLearnState();
+
+  if (!rawState || typeof rawState !== "object") {
+    return fallback;
+  }
+
+  const normalized = {
+    nextRuleId: Math.max(
+      toNonNegativeInteger(rawState.nextRuleId, AUTO_LEARN_RULE_ID_START),
+      AUTO_LEARN_RULE_ID_START
+    ),
+    candidates: {},
+    promoted: {}
+  };
+
+  if (rawState.candidates && typeof rawState.candidates === "object") {
+    for (const [host, value] of Object.entries(rawState.candidates)) {
+      if (Object.keys(normalized.candidates).length >= AUTO_LEARN_MAX_CANDIDATES) {
+        break;
+      }
+
+      const candidate = normalizeAutoLearnCandidate({
+        host,
+        ...value
+      });
+
+      if (!candidate) {
+        continue;
+      }
+
+      normalized.candidates[host] = candidate;
+    }
+  }
+
+  if (rawState.promoted && typeof rawState.promoted === "object") {
+    for (const [host, value] of Object.entries(rawState.promoted)) {
+      if (typeof host !== "string" || !/^[a-z0-9.-]+$/i.test(host)) {
+        continue;
+      }
+
+      const ruleId = toNonNegativeInteger(value?.ruleId, 0);
+
+      if (ruleId < AUTO_LEARN_RULE_ID_START) {
+        continue;
+      }
+
+      normalized.promoted[host.toLowerCase()] = {
+        ruleId,
+        addedAt: toNonNegativeInteger(value?.addedAt, Date.now()),
+        confidence: toNonNegativeInteger(value?.confidence, 0),
+        hitsAtPromotion: toNonNegativeInteger(value?.hitsAtPromotion, 0)
+      };
+
+      normalized.nextRuleId = Math.max(normalized.nextRuleId, ruleId + 1);
+    }
+  }
+
+  return normalized;
+}
+
+async function getAutoLearnState() {
+  if (!autoLearnStatePromise) {
+    autoLearnStatePromise = chrome.storage.local
+      .get([AUTO_LEARN_STORAGE_KEY])
+      .then((stored) => normalizeAutoLearnState(stored[AUTO_LEARN_STORAGE_KEY]));
+  }
+
+  return autoLearnStatePromise;
+}
+
+async function persistAutoLearnState() {
+  const state = await getAutoLearnState();
+  await chrome.storage.local.set({
+    [AUTO_LEARN_STORAGE_KEY]: state
+  });
+}
+
+function scheduleAutoLearnPersist() {
+  if (autoLearnFlushTimer) {
+    return;
+  }
+
+  autoLearnFlushTimer = setTimeout(() => {
+    autoLearnFlushTimer = null;
+
+    persistAutoLearnState().catch((error) => {
+      console.error("Failed to persist auto-learn state", error);
+    });
+  }, AUTO_LEARN_FLUSH_DELAY_MS);
+}
+
+function normalizeHost(host) {
+  if (typeof host !== "string") {
+    return "";
+  }
+
+  return host
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "")
+    .replace(/\.$/, "");
+}
+
+function getSiteKey(host) {
+  const normalized = normalizeHost(host);
+
+  if (!normalized) {
+    return "";
+  }
+
+  const parts = normalized.split(".").filter(Boolean);
+
+  if (parts.length <= 2) {
+    return normalized;
+  }
+
+  const topLevel = parts[parts.length - 1];
+  const secondLevel = parts[parts.length - 2];
+  const secondLevelCandidates = new Set(["co", "com", "net", "org", "gov", "edu", "ac"]);
+
+  if (topLevel.length === 2 && secondLevelCandidates.has(secondLevel) && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+
+  return parts.slice(-2).join(".");
+}
+
+function isThirdPartyHost(targetHost, contextHost) {
+  const targetSite = getSiteKey(targetHost);
+  const contextSite = getSiteKey(contextHost);
+
+  if (!targetSite || !contextSite) {
+    return false;
+  }
+
+  return targetSite !== contextSite;
+}
+
+function hasTrackingHostSignal(host) {
+  return AUTO_LEARN_HOST_SIGNAL_REGEX.test(host);
+}
+
+function hasTrackingPathSignal(pathname, search) {
+  return AUTO_LEARN_PATH_SIGNAL_REGEX.test(`${pathname || ""}${search || ""}`);
+}
+
+function isKnownTrackingHost(host) {
+  const normalized = normalizeHost(host);
+
+  if (!normalized) {
+    return false;
+  }
+
+  return AUTO_LEARN_TRACKING_HOST_SUFFIXES.some(
+    (suffix) => normalized === suffix || normalized.endsWith(`.${suffix}`)
+  );
+}
+
+function scoreAutoLearnCandidate({
+  host,
+  pathname,
+  search,
+  resourceType,
+  source,
+  isThirdParty
+}) {
+  if (!isThirdParty) {
+    return 0;
+  }
+
+  let score = 0;
+
+  score += 25;
+
+  if (isKnownTrackingHost(host)) {
+    score += 55;
+  }
+
+  if (hasTrackingHostSignal(host)) {
+    score += 20;
+  }
+
+  if (hasTrackingPathSignal(pathname, search)) {
+    score += 15;
+  }
+
+  if (AUTO_LEARN_RESOURCE_TYPES.includes(resourceType)) {
+    score += 10;
+  }
+
+  if (source === "network") {
+    score += 8;
+  } else {
+    score += 4;
+  }
+
+  return Math.min(score, 100);
+}
+
+function createAutoLearnRule(ruleId, host) {
+  return {
+    id: ruleId,
+    priority: 1,
+    action: {
+      type: "block"
+    },
+    condition: {
+      urlFilter: `||${host}^`,
+      domainType: "thirdParty",
+      resourceTypes: AUTO_LEARN_RESOURCE_TYPES
+    }
+  };
+}
+
+function trimAutoLearnCandidates(state) {
+  const entries = Object.entries(state.candidates);
+
+  if (entries.length <= AUTO_LEARN_MAX_CANDIDATES) {
+    return;
+  }
+
+  entries.sort((entryA, entryB) => {
+    const candidateA = entryA[1];
+    const candidateB = entryB[1];
+
+    if (candidateA.hits !== candidateB.hits) {
+      return candidateA.hits - candidateB.hits;
+    }
+
+    if (candidateA.maxScore !== candidateB.maxScore) {
+      return candidateA.maxScore - candidateB.maxScore;
+    }
+
+    return candidateA.lastSeen - candidateB.lastSeen;
+  });
+
+  const toRemove = entries.length - AUTO_LEARN_MAX_CANDIDATES;
+
+  for (let index = 0; index < toRemove; index += 1) {
+    delete state.candidates[entries[index][0]];
+  }
+}
+
+function shouldPromoteCandidate(candidate) {
+  if (!candidate) {
+    return false;
+  }
+
+  if (!isKnownTrackingHost(candidate.host) && !hasTrackingHostSignal(candidate.host)) {
+    return false;
+  }
+
+  if (candidate.maxScore < AUTO_LEARN_PROMOTE_SCORE) {
+    return false;
+  }
+
+  if (candidate.hits < AUTO_LEARN_PROMOTE_HITS) {
+    return false;
+  }
+
+  if (candidate.siteKeys.length < AUTO_LEARN_PROMOTE_SITE_COUNT) {
+    return false;
+  }
+
+  return true;
+}
+
+function touchAutoLearnDedupeCache(key) {
+  const now = Date.now();
+  const lastSeen = autoLearnDedupeCache.get(key) || 0;
+
+  if (now - lastSeen < AUTO_LEARN_DEDUPE_WINDOW_MS) {
+    return false;
+  }
+
+  autoLearnDedupeCache.set(key, now);
+
+  if (autoLearnDedupeCache.size <= AUTO_LEARN_DEDUPE_CACHE_MAX) {
+    return true;
+  }
+
+  for (const [entryKey, entryTimestamp] of autoLearnDedupeCache.entries()) {
+    if (now - entryTimestamp > AUTO_LEARN_DEDUPE_WINDOW_MS) {
+      autoLearnDedupeCache.delete(entryKey);
+    }
+
+    if (autoLearnDedupeCache.size <= AUTO_LEARN_DEDUPE_CACHE_MAX) {
+      break;
+    }
+  }
+
+  return true;
+}
+
+function parseHttpUrl(rawUrl, baseUrl = undefined) {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    return null;
+  }
+
+  try {
+    const parsed = baseUrl ? new URL(rawUrl, baseUrl) : new URL(rawUrl);
+
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function tryPromoteAutoLearnCandidate(state, candidate) {
+  if (!candidate || Object.hasOwn(state.promoted, candidate.host)) {
+    return;
+  }
+
+  if (!shouldPromoteCandidate(candidate)) {
+    return;
+  }
+
+  if (Object.keys(state.promoted).length >= AUTO_LEARN_MAX_DYNAMIC_RULES) {
+    return;
+  }
+
+  const ruleId = Math.max(state.nextRuleId, AUTO_LEARN_RULE_ID_START);
+
+  try {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      addRules: [createAutoLearnRule(ruleId, candidate.host)],
+      removeRuleIds: []
+    });
+  } catch (error) {
+    console.warn("Auto-learn promotion failed", candidate.host, error);
+    return;
+  }
+
+  state.promoted[candidate.host] = {
+    ruleId,
+    addedAt: Date.now(),
+    confidence: candidate.maxScore,
+    hitsAtPromotion: candidate.hits
+  };
+
+  state.nextRuleId = ruleId + 1;
+  delete state.candidates[candidate.host];
+  scheduleAutoLearnPersist();
+}
+
+async function processAutoLearnObservation({
+  candidateUrl,
+  contextUrl,
+  resourceType = "other",
+  source = "network"
+}) {
+  if (!autoLearningEnabled) {
+    return;
+  }
+
+  const candidate = parseHttpUrl(candidateUrl, contextUrl);
+  const context = parseHttpUrl(contextUrl);
+
+  if (!candidate || !context) {
+    return;
+  }
+
+  const candidateHost = normalizeHost(candidate.hostname);
+  const contextHost = normalizeHost(context.hostname);
+
+  if (!candidateHost || !contextHost || !isThirdPartyHost(candidateHost, contextHost)) {
+    return;
+  }
+
+  const dedupeKey = `${candidateHost}|${getSiteKey(contextHost)}|${resourceType}|${source}`;
+
+  if (!touchAutoLearnDedupeCache(dedupeKey)) {
+    return;
+  }
+
+  const score = scoreAutoLearnCandidate({
+    host: candidateHost,
+    pathname: candidate.pathname,
+    search: candidate.search,
+    resourceType,
+    source,
+    isThirdParty: true
+  });
+
+  if (score < AUTO_LEARN_MIN_SCORE) {
+    return;
+  }
+
+  const state = await getAutoLearnState();
+  const siteKey = getSiteKey(contextHost);
+  const record =
+    state.candidates[candidateHost] ||
+    {
+      host: candidateHost,
+      hits: 0,
+      maxScore: 0,
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      siteKeys: [],
+      sources: {
+        network: 0,
+        page: 0
+      }
+    };
+
+  record.hits += 1;
+  record.maxScore = Math.max(record.maxScore, score);
+  record.lastSeen = Date.now();
+
+  if (!record.siteKeys.includes(siteKey) && record.siteKeys.length < AUTO_LEARN_MAX_INITIATOR_SITES) {
+    record.siteKeys.push(siteKey);
+  }
+
+  if (source === "page") {
+    record.sources.page += 1;
+  } else {
+    record.sources.network += 1;
+  }
+
+  state.candidates[candidateHost] = record;
+  trimAutoLearnCandidates(state);
+  scheduleAutoLearnPersist();
+  await tryPromoteAutoLearnCandidate(state, record);
+}
+
+function queueAutoLearnObservation(observation) {
+  autoLearnMutationQueue = autoLearnMutationQueue
+    .then(() => processAutoLearnObservation(observation))
+    .catch((error) => {
+      console.warn("Auto-learn observation processing failed", error);
+    });
+}
+
+async function hydrateAutoLearnStateFromDynamicRules() {
+  if (autoLearningHydrated) {
+    return;
+  }
+
+  const state = await getAutoLearnState();
+  const dynamicRules = await chrome.declarativeNetRequest.getDynamicRules();
+
+  for (const rule of dynamicRules) {
+    if (rule.id < AUTO_LEARN_RULE_ID_START) {
+      continue;
+    }
+
+    state.nextRuleId = Math.max(state.nextRuleId, rule.id + 1);
+
+    const urlFilter = rule?.condition?.urlFilter;
+
+    if (typeof urlFilter !== "string" || !urlFilter.startsWith("||") || !urlFilter.endsWith("^")) {
+      continue;
+    }
+
+    const host = normalizeHost(urlFilter.slice(2, -1));
+
+    if (!host) {
+      continue;
+    }
+
+    if (!Object.hasOwn(state.promoted, host)) {
+      state.promoted[host] = {
+        ruleId: rule.id,
+        addedAt: Date.now(),
+        confidence: 100,
+        hitsAtPromotion: 0
+      };
+    }
+  }
+
+  autoLearningHydrated = true;
+  scheduleAutoLearnPersist();
+}
+
+function setAutoLearnWebRequestListener(enabled) {
+  const beforeRequestApi = chrome.webRequest?.onBeforeRequest;
+
+  if (!beforeRequestApi || typeof beforeRequestApi.addListener !== "function") {
+    return;
+  }
+
+  if (!enabled) {
+    if (autoLearnWebRequestListener && beforeRequestApi.hasListener(autoLearnWebRequestListener)) {
+      beforeRequestApi.removeListener(autoLearnWebRequestListener);
+    }
+
+    autoLearnWebRequestListener = null;
+    return;
+  }
+
+  if (autoLearnWebRequestListener && beforeRequestApi.hasListener(autoLearnWebRequestListener)) {
+    return;
+  }
+
+  autoLearnWebRequestListener = (details) => {
+    queueAutoLearnObservation({
+      candidateUrl: details.url,
+      contextUrl: details.initiator || details.documentUrl || details.originUrl,
+      resourceType: details.type || "other",
+      source: "network"
+    });
+  };
+
+  beforeRequestApi.addListener(
+    autoLearnWebRequestListener,
+    {
+      urls: ["http://*/*", "https://*/*"],
+      types: AUTO_LEARN_RESOURCE_TYPES
+    },
+    []
+  );
+}
+
+async function initializeAutoLearning() {
+  await hydrateAutoLearnStateFromDynamicRules();
+
+  const settings = await getSettings();
+  autoLearningEnabled = Boolean(settings.blockAutoLearningEnabled);
+  setAutoLearnWebRequestListener(autoLearningEnabled);
+}
+
+async function getAutoLearningSummary() {
+  const state = await getAutoLearnState();
+  const candidates = Object.values(state.candidates);
+
+  let promotionReady = 0;
+
+  for (const candidate of candidates) {
+    if (shouldPromoteCandidate(candidate)) {
+      promotionReady += 1;
+    }
+  }
+
+  return {
+    enabled: autoLearningEnabled,
+    trackedCandidates: candidates.length,
+    promotedRules: Object.keys(state.promoted).length,
+    promotionReady
+  };
 }
 
 async function getSettings() {
@@ -468,13 +1150,17 @@ async function syncBlockingState() {
       settings.blockRedirectPopupsEnabled
   );
 
+  autoLearningEnabled = Boolean(settings.blockAutoLearningEnabled);
+
   await updateRulesetState(settings);
   await updateBadgeState(isAnyBlockingEnabled);
+  setAutoLearnWebRequestListener(autoLearningEnabled);
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
   await migrateLegacySettings();
   await initializeDiagnostics();
+  await initializeAutoLearning();
 
   const stored = await chrome.storage.sync.get(Object.keys(DEFAULT_SETTINGS));
   const missingDefaults = {};
@@ -495,12 +1181,65 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(async () => {
   await migrateLegacySettings();
   await initializeDiagnostics();
+  await initializeAutoLearning();
   await syncBlockingState();
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || typeof message !== "object") {
     return;
+  }
+
+  if (message.type === "AUTO_LEARN_PAGE_URLS") {
+    const pageUrl = typeof message.pageUrl === "string" ? message.pageUrl : "";
+    const candidateUrls = Array.isArray(message.urls) ? message.urls : [];
+
+    if (!autoLearningEnabled || !pageUrl || candidateUrls.length === 0) {
+      sendResponse({
+        ok: true,
+        queued: 0
+      });
+      return;
+    }
+
+    let queued = 0;
+
+    for (const candidateUrl of candidateUrls) {
+      if (typeof candidateUrl !== "string" || !candidateUrl) {
+        continue;
+      }
+
+      queueAutoLearnObservation({
+        candidateUrl,
+        contextUrl: pageUrl,
+        resourceType: "other",
+        source: "page"
+      });
+      queued += 1;
+    }
+
+    sendResponse({
+      ok: true,
+      queued
+    });
+    return;
+  }
+
+  if (message.type === "GET_AUTO_LEARNING_SUMMARY") {
+    (async () => {
+      const summary = await getAutoLearningSummary();
+      sendResponse({
+        ok: true,
+        summary
+      });
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
   }
 
   if (message.type === "GET_DIAGNOSTICS_SNAPSHOT") {
@@ -550,7 +1289,9 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
     (key) => RULE_CONTROL_KEYS.has(key) || Object.hasOwn(LEGACY_SETTING_KEY_MAP, key)
   );
 
-  if (!hasRuleOrLegacyChange) {
+  const hasAutoLearningSettingChange = changedKeys.includes("blockAutoLearningEnabled");
+
+  if (!hasRuleOrLegacyChange && !hasAutoLearningSettingChange) {
     return;
   }
 
@@ -560,4 +1301,8 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
 
 initializeDiagnostics().catch((error) => {
   console.warn("Diagnostics initialization failed", error);
+});
+
+initializeAutoLearning().catch((error) => {
+  console.warn("Auto-learning initialization failed", error);
 });

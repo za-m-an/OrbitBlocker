@@ -7,6 +7,7 @@
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
+    "webRequest",
     "storage"
   ],
   "host_permissions": [
@@ -40,6 +41,15 @@
         "src/content/redirect-popup-guard.js"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
+        "src/content/auto-learn-scanner.js"
+      ],
+      "run_at": "document_idle"
     },
     {
       "matches": [

@@ -12,6 +12,7 @@ const coreShieldToggle = document.getElementById("coreShieldToggle");
 const youtubeShieldToggle = document.getElementById("youtubeShieldToggle");
 const oemGoogleShieldToggle = document.getElementById("oemGoogleShieldToggle");
 const visualShieldToggle = document.getElementById("visualShieldToggle");
+const adaptiveShieldToggle = document.getElementById("adaptiveShieldToggle");
 const openDiagnosticsButton = document.getElementById("openDiagnosticsButton");
 const mobileModeText = document.getElementById("mobileModeText");
 const statusText = document.getElementById("statusText");
@@ -36,6 +37,10 @@ const TOGGLE_GROUPS = Object.freeze([
   {
     element: visualShieldToggle,
     keys: ["blockFlashBannersEnabled", "blockRedirectPopupsEnabled"]
+  },
+  {
+    element: adaptiveShieldToggle,
+    keys: ["blockAutoLearningEnabled"]
   }
 ]);
 
