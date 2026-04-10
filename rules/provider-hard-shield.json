@@ -549,5 +549,383 @@
         "other"
       ]
     }
+  },
+  {
+    "id": 31,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||analyticsengine.s3.amazonaws.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 32,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||analytics.s3.amazonaws.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 33,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||click.googleanalytics.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 34,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||ads.pinterest.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 35,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||ads.youtube.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 36,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||log.byteoversea.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 37,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||udcm.yahoo.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 38,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||analytics.query.yahoo.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 39,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||log.fc.yahoo.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 40,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||gemini.yahoo.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 41,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||adtech.yahooinc.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 42,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||appmetrica.yandex.ru^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 43,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||adfstat.yandex.ru^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 44,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||metrika.yandex.ru^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 45,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||auction.unityads.unity3d.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 46,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||webview.unityads.unity3d.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 47,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||config.unityads.unity3d.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 48,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "urlFilter": "||adserver.unityads.unity3d.com^",
+      "resourceTypes": [
+        "script",
+        "image",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "font",
+        "stylesheet",
+        "media",
+        "other"
+      ]
+    }
   }
 ]

@@ -1632,5 +1632,341 @@
                           "urlFilter":  "||browser.events.data.microsoft.com/OneCollector/",
                           "domainType":  "thirdParty"
                       }
+    },
+    {
+        "id": 89,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||iot-eu-logser.realme.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 90,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||iot-logser.realme.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 91,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||bdapi-ads.realmemobile.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 92,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||bdapi-in-ads.realmemobile.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 93,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||data.mistat.india.xiaomi.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 94,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||data.mistat.rus.xiaomi.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 95,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||tracking.rus.miui.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 96,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||ck.ads.oppomobile.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 97,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||iadsdk.apple.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 98,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||metrics.icloud.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 99,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||api-adservices.apple.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 100,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||books-analytics-events.apple.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 101,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||weather-analytics-events.apple.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 102,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||notes-analytics-events.apple.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 103,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||grs.hicloud.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
+    },
+    {
+        "id": 104,
+        "priority": 100,
+        "action": {
+            "type": "block"
+        },
+        "condition": {
+            "urlFilter": "||smetrics.samsung.com^",
+            "resourceTypes": [
+                "script",
+                "image",
+                "sub_frame",
+                "xmlhttprequest",
+                "ping",
+                "font",
+                "stylesheet",
+                "media",
+                "other"
+            ]
+        }
     }
 ]
