@@ -117,6 +117,11 @@
         "path": "rules/adguard-base-global.json"
       },
       {
+        "id": "provider_hard_shield",
+        "enabled": true,
+        "path": "rules/provider-hard-shield.json"
+      },
+      {
         "id": "oem_google_tracking_shield",
         "enabled": true,
         "path": "rules/oem-google-tracking-shield.json"

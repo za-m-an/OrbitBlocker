@@ -20,7 +20,11 @@ const RULESETS_BY_SETTING = Object.freeze({
   blockYoutubeNetworkEnabled: ["youtube_core"],
   blockFacebookShieldEnabled: ["facebook_tracking_shield"],
   blockGlobalTrackersEnabled: ["easyprivacy_global"],
-  blockGlobalAdsEnabled: ["easylist_global_ads", "adguard_base_ads"],
+  blockGlobalAdsEnabled: [
+    "easylist_global_ads",
+    "adguard_base_ads",
+    "provider_hard_shield"
+  ],
   blockOemGoogleTrackingEnabled: ["oem_google_tracking_shield"],
   blockRedirectPopupsEnabled: ["popup_redirect_shield"]
 });
@@ -31,6 +35,7 @@ const RULESET_LABELS = Object.freeze({
   easyprivacy_global: "EasyPrivacy Global",
   easylist_global_ads: "EasyList Global Ads",
   adguard_base_ads: "AdGuard Base Ads",
+  provider_hard_shield: "Provider Hard Shield",
   oem_google_tracking_shield: "OEM + Google Tracking Shield",
   popup_redirect_shield: "Popup Redirect Shield"
 });
@@ -84,11 +89,20 @@ const AUTO_LEARN_TRACKING_HOST_SUFFIXES = Object.freeze([
   "doubleclick.net",
   "googlesyndication.com",
   "googleadservices.com",
+  "googleads.g.doubleclick.net",
+  "pubads.g.doubleclick.net",
+  "securepubads.g.doubleclick.net",
+  "partnerad.l.doubleclick.net",
+  "ad.doubleclick.net",
   "google-analytics.com",
   "googletagmanager.com",
   "google-analytics.cn",
   "app-measurement.com",
   "adservice.google.com",
+  "myadcenter.google.com",
+  "adcenter.google.com",
+  "pagead2.googlesyndication.com",
+  "tpc.googlesyndication.com",
   "analytics.google.com",
   "stats.g.doubleclick.net",
   "analytics.yahoo.com",
@@ -129,6 +143,11 @@ const AUTO_LEARN_TRACKING_HOST_SUFFIXES = Object.freeze([
   "mobile.events.data.microsoft.com",
   "telemetry.microsoft.com",
   "amazon-adsystem.com",
+  "aax.amazon-adsystem.com",
+  "c.amazon-adsystem.com",
+  "d.amazon-adsystem.com",
+  "mads.amazon-adsystem.com",
+  "s.amazon-adsystem.com",
   "fls-na.amazon-adsystem.com",
   "aax-us-east.amazon-adsystem.com"
 ]);
@@ -416,6 +435,15 @@ async function loadStaticRuleCounts() {
           : null;
       } catch {
         counts.popup_redirect_shield = null;
+      }
+
+      try {
+        const providerHardShield = await readJsonFromRuntime("rules/provider-hard-shield.json");
+        counts.provider_hard_shield = Array.isArray(providerHardShield)
+          ? providerHardShield.length
+          : null;
+      } catch {
+        counts.provider_hard_shield = null;
       }
 
       return counts;
