@@ -72,14 +72,15 @@ const FEATURE_TOGGLE_CONFIG = Object.freeze([
   }
 ]);
 
-const BKASH_NUMBER = "+8801329602758";
-
 const masterPowerButton = document.getElementById("masterPowerButton");
 const masterPowerLabel = document.getElementById("masterPowerLabel");
 const masterStateText = document.getElementById("masterStateText");
 const powerCore = document.getElementById("powerCore");
 const statusPill = document.getElementById("statusPill");
-const copyBkashButton = document.getElementById("copyBkashButton");
+const openSupportButton = document.getElementById("openSupportButton");
+const supportModal = document.getElementById("supportModal");
+const supportModalBackdrop = document.getElementById("supportModalBackdrop");
+const closeSupportModalButton = document.getElementById("closeSupportModalButton");
 const openDiagnosticsButton = document.getElementById("openDiagnosticsButton");
 const openOptionsButton = document.getElementById("openOptionsButton");
 const statusText = document.getElementById("statusText");
@@ -196,6 +197,34 @@ async function openExtensionPage(relativePath) {
   window.location.href = url;
 }
 
+function closeSupportModal(returnFocus = true) {
+  if (!supportModal) {
+    return;
+  }
+
+  supportModal.hidden = true;
+  document.body.classList.remove("modal-open");
+
+  if (returnFocus && openSupportButton) {
+    openSupportButton.focus();
+  }
+}
+
+function openSupportModal() {
+  if (!supportModal) {
+    return;
+  }
+
+  supportModal.hidden = false;
+  document.body.classList.add("modal-open");
+
+  if (closeSupportModalButton) {
+    closeSupportModalButton.focus();
+  }
+
+  setHintText("bKash Send Money");
+}
+
 masterPowerButton.addEventListener("click", async () => {
   const targetEnabledState = !isAllEnabled(currentSettings);
 
@@ -238,28 +267,27 @@ for (const feature of featureToggles) {
   });
 }
 
-copyBkashButton.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(BKASH_NUMBER);
-    setHintText(`bKash number copied: ${BKASH_NUMBER}`);
-  } catch {
-    const tempInput = document.createElement("textarea");
-    tempInput.value = BKASH_NUMBER;
-    tempInput.setAttribute("readonly", "true");
-    tempInput.style.position = "absolute";
-    tempInput.style.left = "-9999px";
-    document.body.appendChild(tempInput);
-    tempInput.select();
+if (openSupportButton) {
+  openSupportButton.addEventListener("click", () => {
+    openSupportModal();
+  });
+}
 
-    const copied = document.execCommand("copy");
-    document.body.removeChild(tempInput);
+if (closeSupportModalButton) {
+  closeSupportModalButton.addEventListener("click", () => {
+    closeSupportModal();
+  });
+}
 
-    if (copied) {
-      setHintText(`bKash number copied: ${BKASH_NUMBER}`);
-      return;
-    }
+if (supportModalBackdrop) {
+  supportModalBackdrop.addEventListener("click", () => {
+    closeSupportModal();
+  });
+}
 
-    setHintText(`bKash: ${BKASH_NUMBER}`, true);
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && supportModal && !supportModal.hidden) {
+    closeSupportModal();
   }
 });
 

@@ -148,10 +148,10 @@
       <section class="support-card" aria-label="Support the developer">
         <div>
           <p class="support-title">Support the Developer</p>
-          <p class="support-copy">Payment method: bKash (Bikash) +8801329602758</p>
+          <p class="support-copy">Payment method: Send Money</p>
         </div>
-        <button class="action-button support" id="copyBkashButton" type="button">
-          Support the Developer
+        <button class="action-button support" id="openSupportButton" type="button">
+          Send Money
         </button>
       </section>
 
@@ -167,6 +167,34 @@
       <p id="statusText" class="hint" aria-live="polite">
         Use the center button to start or stop all shields at once.
       </p>
+
+      <section id="supportModal" class="support-modal" hidden>
+        <button
+          id="supportModalBackdrop"
+          class="support-modal-backdrop"
+          type="button"
+          aria-label="Close support popup"
+        ></button>
+        <article
+          class="support-modal-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="supportModalTitle"
+        >
+          <div class="support-modal-header">
+            <h2 id="supportModalTitle">bKash Send Money</h2>
+            <button id="closeSupportModalButton" class="close-support-modal" type="button" aria-label="Close">
+              x
+            </button>
+          </div>
+          <img
+            class="support-qr-image"
+            src="../../assets/screenshots/bkash-send-money-qr.jpeg"
+            alt="bKash Send Money QR code"
+          />
+          <p class="support-modal-copy">Scan to pay using bKash Send Money.</p>
+        </article>
+      </section>
     </main>
 
     <script src="popup.js" type="module"></script>
