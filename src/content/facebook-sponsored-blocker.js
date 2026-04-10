@@ -24,9 +24,9 @@ const RIGHT_RAIL_SCOPE_SELECTORS = [
 ].join(",");
 
 const SPONSORED_MARKER_SELECTORS = [
-  "[aria-label='Sponsored']",
-  "span[aria-label='Sponsored']",
-  "a[aria-label='Sponsored']",
+  "[aria-label*='Sponsored' i]",
+  "span[aria-label*='Sponsored' i]",
+  "a[aria-label*='Sponsored' i]",
   "a[href*='/ads/about/']",
   "a[href*='about/ads']",
   "a[href*='ad_preferences']",
@@ -62,6 +62,42 @@ function hideElement(element) {
 
   element.style.setProperty("display", "none", "important");
   element.setAttribute("data-zn-blocker-facebook-hidden", "true");
+}
+
+function resolvePostContainer(node) {
+  if (!(node instanceof Element)) {
+    return null;
+  }
+
+  let current = node;
+  let best = node;
+  let depth = 0;
+
+  while (current && depth < 14) {
+    if (current.matches("div[data-pagelet*='FeedUnit'], div[aria-posinset], div[role='article'], div[role='gridcell']")) {
+      best = current;
+    }
+
+    if (current.matches("div[role='feed'], div[data-pagelet='RightRail'], div[role='complementary'], aside[role='complementary']")) {
+      break;
+    }
+
+    current = current.parentElement;
+    depth += 1;
+  }
+
+  return best;
+}
+
+function hidePostContainer(node) {
+  const target = resolvePostContainer(node);
+
+  if (target) {
+    hideElement(target);
+    return;
+  }
+
+  hideElement(node);
 }
 
 function queryAllIncludingRoot(root, selector) {
@@ -120,6 +156,35 @@ function hasAdDisclosureLink(container) {
   }
 
   return Boolean(container.querySelector(SPONSORED_MARKER_SELECTORS));
+}
+
+function hasLynxOutboundSignal(container) {
+  if (!(container instanceof Element)) {
+    return false;
+  }
+
+  if (container.querySelector("[data-lynx-uri], [data-lynx-mode], [data-lynx-tracking]")) {
+    return true;
+  }
+
+  const anchors = container.querySelectorAll("a[href]");
+  let inspected = 0;
+
+  for (const anchor of anchors) {
+    inspected += 1;
+
+    if (inspected > 35) {
+      break;
+    }
+
+    const href = anchor.getAttribute("href") || "";
+
+    if (href.includes("/l.php?u=") || href.includes("l.facebook.com/l.php?u=")) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function hasExternalDestinationLink(container) {
@@ -187,6 +252,43 @@ function hasLeadingSponsoredText(container) {
   return SPONSORED_TEXT_REGEX.test(text);
 }
 
+function hasSponsoredByline(container) {
+  if (!(container instanceof Element)) {
+    return false;
+  }
+
+  if (container.querySelector("[aria-label*='Sponsored' i]")) {
+    return true;
+  }
+
+  const bylineNodes = container.querySelectorAll("span, a, div[role='button']");
+  let scanned = 0;
+
+  for (const node of bylineNodes) {
+    scanned += 1;
+
+    if (scanned > 60) {
+      break;
+    }
+
+    const text = normalizeText(node.textContent || "");
+
+    if (!text || text.length > 60) {
+      continue;
+    }
+
+    if (/^sponsored(?:\b|\s|\u00b7|\.|:)/i.test(text)) {
+      return true;
+    }
+
+    if (text === "Sponsored") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function findLikelyCardContainer(node) {
   if (!(node instanceof Element)) {
     return null;
@@ -216,15 +318,17 @@ function isLikelySponsoredFeedUnit(unit) {
     return false;
   }
 
-  if (hasAdDisclosureLink(unit)) {
+  if (hasAdDisclosureLink(unit) || hasSponsoredByline(unit)) {
     return true;
   }
 
-  if (!hasLeadingSponsoredText(unit)) {
+  const hasSponsoredSignal = hasLeadingSponsoredText(unit) || hasSponsoredByline(unit);
+
+  if (!hasSponsoredSignal) {
     return false;
   }
 
-  if (!(hasExternalDestinationLink(unit) || hasAdDisclosureLink(unit))) {
+  if (!(hasExternalDestinationLink(unit) || hasLynxOutboundSignal(unit) || hasAdDisclosureLink(unit))) {
     return false;
   }
 
@@ -254,7 +358,7 @@ function hideSponsoredFeedUnits(root = document) {
       continue;
     }
 
-    hideElement(candidate);
+    hidePostContainer(candidate);
   }
 }
 
@@ -274,7 +378,7 @@ function hideSponsoredByMarkers(root = document) {
     }
 
     if (isLikelySponsoredFeedUnit(container)) {
-      hideElement(container);
+      hidePostContainer(container);
     }
   }
 }
@@ -294,7 +398,7 @@ function hideSponsoredRightRail(root = document) {
       }
 
       if (isLikelySponsoredFeedUnit(block)) {
-        hideElement(block);
+        hidePostContainer(block);
       }
     }
 
