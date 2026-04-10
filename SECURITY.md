@@ -1,31 +1,39 @@
 # Security Policy
 
-## Reporting a Vulnerability
+ZN blocker security reports must be submitted privately.
 
-Please report security issues privately and do not open a public issue first.
+## 1. How to Report
 
-When reporting, include:
+Please do not open public issues for vulnerabilities.
 
-- Affected file(s) and component(s)
+Use GitHub private security reporting channels and include:
+
+- Affected component or file path
 - Reproduction steps
-- Impact assessment
-- Suggested remediation (if available)
+- Expected behavior vs actual behavior
+- Impact and severity estimate
+- Suggested remediation, if known
 
-## Scope
+## 2. In-Scope Security Areas
 
-Security reports are accepted for:
+- Extension permissions and runtime privileges
+- Ruleset integrity, generation, and loading behavior
+- Local or synced storage handling
+- Packaging pipeline and release artifact integrity
+- Dynamic/manual rule management safety
 
-- Extension permission handling
-- Ruleset integrity and update scripts
-- Data handling and storage behavior
-- Packaging and release artifacts
+## 3. Out-of-Scope Reports
 
-## Response Targets
+- Generic ad-block bypass requests
+- Non-security feature requests
+- Issues requiring unsupported browser modifications
 
-- Initial acknowledgment: within 3 business days
-- Triage decision: within 7 business days
-- Fix timeline: based on severity and impact
+## 4. Response Targets
 
-## Disclosure
+- Acknowledgment target: within 3 business days
+- Triage target: within 7 business days
+- Fix and release target: severity-based
 
-After a fix is released, maintainers may publish a brief advisory describing impact and resolution.
+## 5. Coordinated Disclosure
+
+After a patch is released, maintainers may publish a short advisory summarizing impact, affected versions, and mitigation.

@@ -1,27 +1,27 @@
 # Code of Conduct
 
-## Our Commitment
+## 1. Our Commitment
 
-We are committed to a respectful, harassment-free environment for everyone.
+We are committed to maintaining a respectful, inclusive, and harassment-free environment for all contributors and users.
 
-## Expected Behavior
+## 2. Expected Conduct
 
-- Be respectful and constructive.
-- Focus feedback on technical issues, not people.
-- Accept and give feedback professionally.
-- Assume good intent while collaborating.
+- Communicate respectfully and constructively.
+- Focus on technical decisions, not personal criticism.
+- Accept feedback professionally and in good faith.
+- Help keep discussions clear, on-topic, and solution-oriented.
 
-## Unacceptable Behavior
+## 3. Unacceptable Conduct
 
-- Harassment, hate speech, or personal attacks.
-- Threats, intimidation, or doxxing.
-- Discriminatory or abusive language.
-- Repeatedly derailing technical discussions.
+- Harassment, hate speech, or personal attacks
+- Threats, intimidation, or doxxing
+- Discriminatory, abusive, or demeaning language
+- Repeated disruption of technical collaboration
 
-## Enforcement
+## 4. Enforcement
 
-Maintainers may remove content, lock threads, or ban contributors who violate this policy.
+Maintainers may remove content, lock threads, reject contributions, or ban accounts for violations.
 
-## Reporting
+## 5. Reporting Conduct Issues
 
-Report conduct issues privately through repository security or maintainer contact channels.
+Report issues privately through project security or maintainer contact channels. Include links, screenshots, and context so maintainers can review quickly.

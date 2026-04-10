@@ -927,5 +927,35 @@
         "other"
       ]
     }
+  },
+  {
+    "id": 49,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^?#]+/ads\\.js(?:[?#].*)?$",
+      "resourceTypes": [
+        "script",
+        "xmlhttprequest",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 50,
+    "priority": 100,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^?#]+/pagead\\.js(?:[?#].*)?$",
+      "resourceTypes": [
+        "script",
+        "xmlhttprequest",
+        "other"
+      ]
+    }
   }
 ]

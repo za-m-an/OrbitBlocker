@@ -1,24 +1,43 @@
-# ZN blocker v0.1.0
+# ZN blocker Release Notes
 
-## Highlights
+This document tracks public milestone highlights for ZN blocker.
 
-- Initial public release for Chromium-based browsers.
-- Global tracker blocking with generated EasyPrivacy rules.
-- YouTube-focused ad and sponsored request filtering.
-- My Ad Center and sponsored UI cleanup on YouTube surfaces.
-- Flash and animated banner suppression on general sites.
-- Built-in diagnostics page with ruleset counters and reset controls.
-- Modern responsive popup, settings, and diagnostics UI.
+## v1.1.2 (Current Stable)
 
-## Included Release Assets
+Release date: 2026-04-10
 
-- ZN-blocker-v0.1.0-chrome.zip
-- ZN-blocker-v0.1.0-edge.zip
-- ZN-blocker-v0.1.0-chromium.zip
-- ZN-blocker-v0.1.0-SHA256SUMS.txt
+### Major Updates
 
-## Notes
+- Added stronger provider-level hard blocking across Google AdCenter, DoubleClick, Amazon AdSystem, Yahoo, Yandex, Unity Ads, and ByteDance telemetry hosts.
+- Expanded OEM and mobile telemetry hard-shield rules for Realme, Xiaomi/MIUI, Oppo, Apple analytics endpoints, Huawei, and Samsung metrics.
+- Improved Facebook sponsored-content filtering with stronger byline, marker, CTA, and outbound-link heuristics.
+- Added right-click manual block controls and rule-management tooling.
+- Enhanced diagnostics with clearer counters and better blocked-request attribution.
 
-- This release uses a non-commercial license.
-- Commercial or monetized use is prohibited.
-- This project does not include bypass logic for platform access-control enforcement.
+### Test Result Snapshot
+
+![ZN blocker test result showing 98 percent score with 130 blocked and 3 not blocked](assets/screenshots/block-test-2026-04-10.jpeg)
+
+- Blocking score: **98%**
+- Total checks: **133**
+- Blocked checks: **130**
+- Remaining checks: **3**
+
+### Included Release Asset Pattern
+
+- `ZN-blocker-v1.1.2-chrome.crx`
+- `ZN-blocker-v1.1.2-edge.crx`
+- `ZN-blocker-v1.1.2-chromium.crx`
+- `ZN-blocker-v1.1.2-*.zip`
+- `ZN-blocker-v1.1.2-SHA256SUMS.txt`
+
+## v0.1.0 (Initial Public Release)
+
+- Initial MV3 extension release for Chromium-based browsers.
+- Baseline YouTube ad/tracker suppression and global list integration.
+- Initial diagnostics and extension UI controls.
+
+## Licensing Notes
+
+- Licensed under the ZN Blocker Community Non-Commercial License v1.0.
+- Commercial or monetized usage is not permitted.

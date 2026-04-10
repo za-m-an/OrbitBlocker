@@ -1,57 +1,86 @@
+<p align="center">
+    <img src="assets/logo/zn-blocker-logo.svg" alt="ZN blocker logo" width="520" />
+</p>
+
 # ZN blocker
 
-ZN blocker is a Manifest V3 browser extension focused on YouTube cleanup, tracker blocking, and ad-surface suppression across Chromium-based browsers.
+ZN blocker is a Manifest V3 extension for Chromium browsers that aggressively suppresses ads, sponsored content, tracking scripts, and OEM telemetry endpoints while keeping the UI simple for daily use.
 
-## Key Features
+<p align="left">
+    <img src="https://img.shields.io/badge/version-1.1.2-22c55e" alt="Version 1.1.2" />
+    <img src="https://img.shields.io/badge/manifest-MV3-0ea5e9" alt="Manifest V3" />
+    <img src="https://img.shields.io/badge/platform-Chromium-1f2937" alt="Chromium" />
+    <img src="https://img.shields.io/badge/license-Non--Commercial-f59e0b" alt="License" />
+</p>
 
-- Global tracker blocking using generated EasyPrivacy-compatible rules.
-- Global ad blocking using generated EasyList and AdGuard Base rules.
-- OEM mobile telemetry blocking for Samsung, Xiaomi, Oppo, Vivo, and related vendor ad endpoints.
-- Heavier Google analytics/tracking suppression tuned to reduce breakage.
-- YouTube-specific request filtering for ad and telemetry endpoints.
-- My Ad Center and sponsored surface cleanup on YouTube UI.
-- Flash and animated banner ad suppression on general websites.
-- Built-in diagnostics view with ruleset counters and reset controls.
-- Simplified premium control layout with grouped shield toggles.
+## Version Snapshot
 
-## Browser Support
+| Item | Value |
+| --- | --- |
+| Current extension version | **1.1.2** |
+| Last docs refresh | **2026-04-10** |
+| Rules architecture | Static DNR + Dynamic adaptive learning |
+| Browser target | Chrome, Edge, and MV3-compatible Chromium browsers |
 
-- Google Chrome (desktop)
-- Microsoft Edge (desktop)
-- Other Chromium-based browsers that support Manifest V3 and Declarative Net Request
+## Latest Blocking Result
 
-## Install From Release Assets
+The image below is the latest real test snapshot requested in this update.
 
-1. Go to the project Releases page on GitHub.
-2. Download the latest package for your browser.
-3. Preferred package type is CRX:
-    - `ZN-blocker-vX.Y.Z-chrome.crx`
-    - `ZN-blocker-vX.Y.Z-edge.crx`
-    - `ZN-blocker-vX.Y.Z-chromium.crx`
-4. ZIP packages are also included for manual unpacked installs.
-5. Open your browser extension page:
-    - Chrome: `chrome://extensions`
-    - Edge: `edge://extensions`
-6. Enable Developer mode.
-7. If CRX direct install is blocked by browser policy, use Load unpacked with ZIP extraction.
-8. Select the extracted folder.
+![ZN blocker test result showing 98 percent score, 130 blocked and 3 not blocked](assets/screenshots/block-test-2026-04-10.jpeg)
 
-## Install From Source
+- Score: **98%**
+- Total checks: **133**
+- Blocked: **130**
+- Not blocked: **3**
+
+## Core Capabilities
+
+- YouTube ad cleanup including sponsored shelves, player overlays, and My Ad Center surfaces.
+- Facebook sponsored-content suppression with DOM heuristics and tracking endpoint blocking.
+- Global ad and tracker protection with EasyList, EasyPrivacy, AdGuard Base, and custom hard-shield rules.
+- OEM/mobile telemetry blocking for Xiaomi, Realme, Oppo, Vivo, Samsung, Huawei, Lenovo, Microsoft, and Apple analytics hosts.
+- Redirect-popup and clicktrap protection.
+- Manual right-click blocking for host and element-level controls.
+- Adaptive auto-learning engine with diagnostics and visibility in extension tools.
+
+## Enabled Rulesets (Default)
+
+| Ruleset | Purpose |
+| --- | --- |
+| `youtube_core` | YouTube-specific ad and telemetry requests |
+| `facebook_tracking_shield` | Facebook sponsored and tracking endpoints |
+| `easyprivacy_global` | Broad tracker suppression |
+| `easylist_global_ads` | Global ad network filtering |
+| `adguard_base_ads` | Additional ad network and script coverage |
+| `provider_hard_shield` | Explicit provider-level hard blocking |
+| `oem_google_tracking_shield` | OEM + analytics/telemetry endpoint blocking |
+| `popup_redirect_shield` | Redirect and clicktrap popup suppression |
+
+## Installation
+
+### Install from GitHub Release
+
+1. Open the repository Releases page.
+2. Download the asset matching your browser.
+3. Prefer CRX builds:
+     - `ZN-blocker-vX.Y.Z-chrome.crx`
+     - `ZN-blocker-vX.Y.Z-edge.crx`
+     - `ZN-blocker-vX.Y.Z-chromium.crx`
+4. If CRX install is blocked by policy, use ZIP and load unpacked.
+
+### Install from Source
 
 1. Clone this repository.
-2. Optional: regenerate assets and rules:
+2. Build assets and rules (optional if already committed):
 
 ```bash
 npm run build:icons
 npm run build:rules
 ```
 
-Rule generation pulls current filter databases from:
-
-- https://easylist.to/easylist/easylist.txt
-- https://filters.adtidy.org/extension/chromium/filters/2.txt
-
-3. Load unpacked using Chrome/Edge extension page.
+3. Open browser extensions page.
+4. Enable Developer mode.
+5. Choose Load unpacked and select this project folder.
 
 ## Development Commands
 
@@ -61,42 +90,24 @@ npm run build:rules
 npm run build:release
 ```
 
-## Release Packaging
+Release packaging script: `scripts/package-release.ps1`.
 
-- Packaging script: `scripts/package-release.ps1`
-- Output folder: `dist/`
-- Produces browser-targeted CRX and ZIP assets plus SHA256 checksums.
-- Uses signing key: `keys/zn-blocker-release.pem` (generated automatically on first packaging run).
+## Documentation
 
-## Contributing
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Release notes: [RELEASE_NOTES_v0.1.0.md](RELEASE_NOTES_v0.1.0.md)
 
-To apply as a contributor, use the Contributor Application issue form:
+## Project Boundary
 
-1. Open GitHub Issues.
-2. Choose Contributor Application.
-3. Fill your background, areas of contribution, and sample work.
-
-Before submitting code:
-
-- Read `CONTRIBUTING.md`
-- Follow `CODE_OF_CONDUCT.md`
-- Keep pull requests focused and clearly described
-
-## Security Reporting
-
-Please do not post security issues publicly first.
-
-Follow `SECURITY.md` for responsible disclosure steps.
-
-## Project Boundaries
-
-This project focuses on tracker and ad-surface cleanup. It does not implement bypass logic for platform access-control enforcement.
+This project focuses on ad, sponsored-content, and tracking suppression. It does not implement bypass logic for platform access-control enforcement.
 
 ## License
 
-This repository is licensed under the ZN Blocker Community Non-Commercial License v1.0.
+Licensed under the ZN Blocker Community Non-Commercial License v1.0.
 
-- Free to use, modify, and share for non-commercial purposes.
-- Commercial use, resale, paid hosting, SaaS monetization, or paid redistribution is prohibited.
+- Non-commercial use is allowed.
+- Commercial resale, paid redistribution, SaaS monetization, and white-label resale are prohibited.
 
-See `LICENSE` for full terms.
+Read full terms in [LICENSE](LICENSE).

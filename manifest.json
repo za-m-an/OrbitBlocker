@@ -68,7 +68,7 @@
       "js": [
         "src/content/flash-banner-blocker.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     },
     {
       "matches": [

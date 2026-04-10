@@ -9,6 +9,17 @@ const DEFAULT_SETTINGS = Object.freeze({
   blockFlashBannersEnabled: true
 });
 
+const EARLY_HIDE_SELECTORS = [
+  ".adsbox",
+  "#adsbox",
+  "[class*='adsbox' i]",
+  "[id*='adsbox' i]",
+  "[class*='ad-slot' i]",
+  "[id*='ad-slot' i]",
+  "[class*='adunit' i]",
+  "[id*='adunit' i]"
+].join(",");
+
 const DEFINITE_AD_SELECTORS = [
   "ins.adsbygoogle",
   "[data-ad-slot]",
@@ -62,6 +73,22 @@ const BANNER_TOKEN_REGEX = /(^|[\W_])(banner|billboard|leaderboard)([\W_]|$)/i;
 let blockingEnabled = true;
 let observer = null;
 let cleanupQueued = false;
+
+function injectEarlyHideStyle() {
+  if (!document.documentElement) {
+    return;
+  }
+
+  if (document.getElementById("zn-blocker-early-cosmetic-style")) {
+    return;
+  }
+
+  const style = document.createElement("style");
+  style.id = "zn-blocker-early-cosmetic-style";
+  style.textContent = `${EARLY_HIDE_SELECTORS}{display:none !important;visibility:hidden !important;}`;
+
+  (document.head || document.documentElement).appendChild(style);
+}
 
 function hideElement(element) {
   element.style.setProperty("display", "none", "important");
@@ -209,12 +236,17 @@ function applyBlockState(enabled) {
   blockingEnabled = Boolean(enabled);
 
   if (blockingEnabled) {
+    injectEarlyHideStyle();
     runCleanup(document);
     startObserver();
     return;
   }
 
   stopObserver();
+}
+
+if (DEFAULT_SETTINGS.blockFlashBannersEnabled) {
+  applyBlockState(true);
 }
 
 chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {

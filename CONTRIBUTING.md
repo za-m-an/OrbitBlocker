@@ -1,52 +1,60 @@
 # Contributing to ZN blocker
 
-Thank you for your interest in contributing.
+Thanks for helping improve ZN blocker.
 
-## Contributor Application
+## 1. Before You Start
 
-Before opening a pull request, submit a Contributor Application issue in GitHub:
+1. Review the project direction in [README.md](README.md).
+2. Read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+3. Confirm your proposal does not conflict with project boundaries.
 
-1. Go to Issues.
-2. Select Contributor Application.
-3. Describe your skills, planned contribution area, and relevant previous work.
-4. Wait for maintainer approval.
+## 2. Contributor Application
 
-## Development Setup
+Before opening a pull request, submit a Contributor Application issue:
 
-1. Fork the repository.
-2. Create a feature branch from main.
-3. Install dependencies and run local checks:
+1. Open GitHub Issues.
+2. Choose Contributor Application.
+3. Share your experience, planned contribution scope, and sample work.
+4. Wait for maintainer approval before substantial implementation.
+
+## 3. Development Setup
+
+1. Fork and clone the repository.
+2. Create a feature branch from `main`.
+3. Run build tasks:
 
 ```bash
 npm run build:icons
 npm run build:rules
 ```
 
-4. Load the extension unpacked in Chrome/Edge for manual testing.
+4. Load unpacked extension in Chrome/Edge and test manually.
 
-## Pull Request Requirements
+## 4. Pull Request Checklist
 
-- Keep each pull request focused on one area.
-- Include a clear summary of what changed and why.
-- Include test evidence (screenshots, logs, or reproduction steps).
-- Update docs when behavior changes.
+- Keep the PR focused on one objective.
+- Explain what changed and why it was necessary.
+- Include validation evidence (screenshots, logs, or reproducible steps).
+- Update markdown documentation when behavior or configuration changes.
+- Mention any side effects, tradeoffs, or compatibility risks.
 
-## Coding Guidelines
+## 5. Quality Standards
 
-- Keep changes small and readable.
-- Preserve existing project style.
-- Avoid unrelated refactors in feature PRs.
-- Prefer deterministic scripts and reproducible output files.
+- Prefer small, reviewable commits.
+- Preserve established code style and naming.
+- Avoid unrelated refactors.
+- Keep scripts deterministic and reproducible.
+- Do not introduce permission changes without explicit rationale.
 
-## What Not to Submit
+## 6. Out of Scope
 
-- Features designed to bypass platform access-control enforcement.
-- Undocumented changes that alter extension permissions.
-- Breaking changes without migration notes.
+- Bypass features for platform access-control enforcement.
+- Hidden behavior changes without documentation.
+- Breaking changes without migration guidance.
 
-## Review Process
+## 7. Review and Release Flow
 
-1. Maintainers validate scope and safety.
-2. Maintainers request revisions when needed.
-3. Approved PRs are merged to main.
-4. Releases are cut from tagged commits only.
+1. Maintainers review functionality, safety, and scope.
+2. Requested revisions are addressed on the same branch.
+3. Approved PRs are merged into `main`.
+4. Release artifacts are generated only from tagged commits.
