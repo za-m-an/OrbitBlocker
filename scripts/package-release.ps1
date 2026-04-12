@@ -8,7 +8,8 @@ $ErrorActionPreference = "Stop"
 function New-StagePackage {
   param(
     [string]$RepoRoot,
-    [string]$StageDir
+    [string]$StageDir,
+    [object]$Manifest
   )
 
   New-Item -Path $StageDir -ItemType Directory | Out-Null
@@ -19,17 +20,39 @@ function New-StagePackage {
   Copy-Item (Join-Path $RepoRoot "assets") (Join-Path $StageDir "assets") -Recurse
   Copy-Item (Join-Path $RepoRoot "src") (Join-Path $StageDir "src") -Recurse
 
-  $stageRulesDir = Join-Path $StageDir "rules"
-  New-Item -Path $stageRulesDir -ItemType Directory | Out-Null
-  Copy-Item (Join-Path $RepoRoot "rules\youtube-core.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\easyprivacy-global.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\easyprivacy-global.meta.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\easylist-global.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\easylist-global.meta.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\adguard-base-global.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\adguard-base-global.meta.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\oem-google-tracking-shield.json") $stageRulesDir
-  Copy-Item (Join-Path $RepoRoot "rules\popup-redirect-shield.json") $stageRulesDir
+  if (-not $Manifest.declarative_net_request -or -not $Manifest.declarative_net_request.rule_resources) {
+    throw "manifest.json is missing declarative_net_request.rule_resources"
+  }
+
+  foreach ($ruleResource in $Manifest.declarative_net_request.rule_resources) {
+    $relativeRulePath = [string]$ruleResource.path
+
+    if ([string]::IsNullOrWhiteSpace($relativeRulePath)) {
+      continue
+    }
+
+    $sourceRulePath = Join-Path $RepoRoot $relativeRulePath
+    if (-not (Test-Path $sourceRulePath)) {
+      throw "Missing ruleset file declared in manifest: $relativeRulePath"
+    }
+
+    $stageRulePath = Join-Path $StageDir $relativeRulePath
+    $stageRuleDir = Split-Path $stageRulePath -Parent
+    if (-not (Test-Path $stageRuleDir)) {
+      New-Item -Path $stageRuleDir -ItemType Directory | Out-Null
+    }
+
+    Copy-Item $sourceRulePath $stageRulePath -Force
+
+    $sourceRuleDir = Split-Path $sourceRulePath -Parent
+    $ruleBaseName = [System.IO.Path]::GetFileNameWithoutExtension($sourceRulePath)
+    $sourceMetaPath = Join-Path $sourceRuleDir "$ruleBaseName.meta.json"
+
+    if (Test-Path $sourceMetaPath) {
+      $stageMetaPath = Join-Path $stageRuleDir "$ruleBaseName.meta.json"
+      Copy-Item $sourceMetaPath $stageMetaPath -Force
+    }
+  }
 }
 
 function Invoke-Crx3Pack {
@@ -92,7 +115,7 @@ $releaseFiles = @()
 
 foreach ($target in $targets) {
   $stageDir = Join-Path $env:TEMP ("zn-blocker-stage-" + [guid]::NewGuid().ToString("N"))
-  New-StagePackage -RepoRoot $repoRoot -StageDir $stageDir
+  New-StagePackage -RepoRoot $repoRoot -StageDir $stageDir -Manifest $manifest
 
   $zipName = "$releaseBase-$target.zip"
   $zipPath = Join-Path $distDir $zipName

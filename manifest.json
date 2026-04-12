@@ -8,6 +8,9 @@
     "contextMenus",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
+    "browsingData",
+    "tabs",
+    "webNavigation",
     "webRequest",
     "storage"
   ],
@@ -58,6 +61,15 @@
       ],
       "js": [
         "src/content/auto-learn-scanner.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
+        "src/content/google-search-cleanup.js"
       ],
       "run_at": "document_idle"
     },

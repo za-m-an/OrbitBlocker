@@ -14,10 +14,9 @@ const DEFAULT_SETTINGS = Object.freeze({
   cleanupUiAdsEnabled: true
 });
 
-const BOOLEAN_SETTING_KEYS = Object.freeze([
+const MASTER_BOOLEAN_SETTING_KEYS = Object.freeze([
   "blockYoutubeNetworkEnabled",
   "youtubePlaybackCompatibilityEnabled",
-  "youtubePreplayCompatibilityEnabled",
   "blockFacebookShieldEnabled",
   "blockGlobalTrackersEnabled",
   "blockGlobalAdsEnabled",
@@ -97,6 +96,7 @@ const supportModalBackdrop = document.getElementById("supportModalBackdrop");
 const closeSupportModalButton = document.getElementById("closeSupportModalButton");
 const openDiagnosticsButton = document.getElementById("openDiagnosticsButton");
 const openOptionsButton = document.getElementById("openOptionsButton");
+const clearSiteCacheButton = document.getElementById("clearSiteCacheButton");
 const statusText = document.getElementById("statusText");
 
 const featureToggles = FEATURE_TOGGLE_CONFIG.map((feature) => ({
@@ -127,7 +127,7 @@ function setHintText(message, isError = false) {
 }
 
 function isAllEnabled(settings) {
-  return BOOLEAN_SETTING_KEYS.every((key) => Boolean(settings[key]));
+  return MASTER_BOOLEAN_SETTING_KEYS.every((key) => Boolean(settings[key]));
 }
 
 function animatePowerStart() {
@@ -178,7 +178,7 @@ function render(settings) {
 function createBooleanSettingsUpdate(value) {
   const update = {};
 
-  for (const key of BOOLEAN_SETTING_KEYS) {
+  for (const key of MASTER_BOOLEAN_SETTING_KEYS) {
     update[key] = value;
   }
 
@@ -209,6 +209,70 @@ async function openExtensionPage(relativePath) {
   }
 
   window.location.href = url;
+}
+
+function parseHttpUrl(rawUrl, baseUrl = undefined) {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    return null;
+  }
+
+  try {
+    const parsed = baseUrl ? new URL(rawUrl, baseUrl) : new URL(rawUrl);
+
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function getActiveTab() {
+  if (!chrome.tabs?.query) {
+    return null;
+  }
+
+  const tabs = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+
+  return Array.isArray(tabs) && tabs.length > 0 ? tabs[0] : null;
+}
+
+async function clearActiveSiteCache() {
+  if (!clearSiteCacheButton) {
+    return;
+  }
+
+  clearSiteCacheButton.disabled = true;
+
+  try {
+    const activeTab = await getActiveTab();
+    const tabUrl = parseHttpUrl(activeTab?.url || "");
+
+    if (!tabUrl) {
+      throw new Error("Open a regular website tab before cleaning cache");
+    }
+
+    const response = await chrome.runtime.sendMessage({
+      type: "CLEAR_SITE_CACHE",
+      tabId: Number.isInteger(activeTab?.id) ? activeTab.id : null,
+      siteUrl: tabUrl.href
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Unable to clear this site cache");
+    }
+
+    setHintText(`Cache cleaned for ${tabUrl.hostname}`);
+  } catch (error) {
+    setHintText(error?.message || "Unable to clear this site cache", true);
+  } finally {
+    clearSiteCacheButton.disabled = false;
+  }
 }
 
 function closeSupportModal(returnFocus = true) {
@@ -314,6 +378,12 @@ openOptionsButton.addEventListener("click", () => {
     .openOptionsPage()
     .catch(() => openExtensionPage("src/options/options.html"));
 });
+
+if (clearSiteCacheButton) {
+  clearSiteCacheButton.addEventListener("click", () => {
+    clearActiveSiteCache();
+  });
+}
 
 window.addEventListener("resize", () => {
   if (!statusTimer) {

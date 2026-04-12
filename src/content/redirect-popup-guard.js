@@ -72,6 +72,7 @@ const POPUP_HANDLER_REGEX =
 let guardEnabled = true;
 let observer = null;
 let cleanupQueued = false;
+let warningNavigationInProgress = false;
 
 function toLowerSafe(value) {
   return String(value || "").toLowerCase();
@@ -131,7 +132,7 @@ function isBlockedHost(hostname) {
   return BLOCKED_HOST_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
 }
 
-function hasCrossOriginRedirectParam(urlObject) {
+function getCrossOriginRedirectTarget(urlObject) {
   for (const [rawKey, rawValue] of urlObject.searchParams.entries()) {
     const key = toLowerSafe(rawKey);
 
@@ -152,11 +153,51 @@ function hasCrossOriginRedirectParam(urlObject) {
     }
 
     if (nestedUrl.origin !== urlObject.origin) {
-      return true;
+      return nestedUrl;
     }
   }
 
-  return false;
+  return null;
+}
+
+function hasCrossOriginRedirectParam(urlObject) {
+  return Boolean(getCrossOriginRedirectTarget(urlObject));
+}
+
+function getSuspiciousNavigationInfo(rawUrl, baseHref) {
+  if (typeof rawUrl !== "string") {
+    return null;
+  }
+
+  const candidate = rawUrl.trim();
+
+  if (!candidate || candidate.startsWith("#") || /^javascript:/i.test(candidate)) {
+    return null;
+  }
+
+  const parsedUrl = tryParseHttpUrl(candidate, baseHref);
+
+  if (!parsedUrl) {
+    return null;
+  }
+
+  const redirectTarget = getCrossOriginRedirectTarget(parsedUrl);
+  const hasBlockedHost = isBlockedHost(parsedUrl.hostname);
+  const hasPathHintRedirect = PATH_HINT_REGEX.test(parsedUrl.pathname) && Boolean(redirectTarget);
+  const hasTokenizedRedirect = Boolean(redirectTarget) && CLICKTRAP_TOKEN_REGEX.test(parsedUrl.search);
+
+  if (!hasBlockedHost && !hasPathHintRedirect && !hasTokenizedRedirect) {
+    return null;
+  }
+
+  const targetUrl = redirectTarget ? redirectTarget.href : parsedUrl.href;
+  const reason = hasBlockedHost ? "blocked-host" : "redirect-trap";
+
+  return {
+    blockedUrl: parsedUrl.href,
+    targetUrl,
+    reason
+  };
 }
 
 function isSuspiciousNavigation(rawUrl, baseHref) {
@@ -174,25 +215,7 @@ function isSuspiciousNavigation(rawUrl, baseHref) {
     return POPUP_HANDLER_REGEX.test(candidate);
   }
 
-  const parsedUrl = tryParseHttpUrl(candidate, baseHref);
-
-  if (!parsedUrl) {
-    return false;
-  }
-
-  if (isBlockedHost(parsedUrl.hostname)) {
-    return true;
-  }
-
-  if (PATH_HINT_REGEX.test(parsedUrl.pathname) && hasCrossOriginRedirectParam(parsedUrl)) {
-    return true;
-  }
-
-  if (hasCrossOriginRedirectParam(parsedUrl) && CLICKTRAP_TOKEN_REGEX.test(parsedUrl.search)) {
-    return true;
-  }
-
-  return false;
+  return Boolean(getSuspiciousNavigationInfo(candidate, baseHref));
 }
 
 function getIdentityText(element) {
@@ -287,6 +310,31 @@ function stopEvent(event) {
   event.stopPropagation();
 }
 
+function openHumanNavigationWarning(navigationInfo) {
+  if (warningNavigationInProgress || !navigationInfo) {
+    return;
+  }
+
+  warningNavigationInProgress = true;
+
+  const payload = {
+    type: "OPEN_BLOCK_WARNING",
+    blockedUrl: navigationInfo.blockedUrl,
+    targetUrl: navigationInfo.targetUrl,
+    sourceUrl: window.location.href,
+    reason: navigationInfo.reason || "suspicious-navigation"
+  };
+
+  chrome.runtime.sendMessage(payload, () => {
+    if (!chrome.runtime.lastError) {
+      return;
+    }
+
+    warningNavigationInProgress = false;
+    window.location.href = navigationInfo.targetUrl || navigationInfo.blockedUrl;
+  });
+}
+
 function blockIfSuspiciousAnchor(event, target) {
   const anchor = target.closest("a[href], area[href]");
 
@@ -295,13 +343,15 @@ function blockIfSuspiciousAnchor(event, target) {
   }
 
   const rawHref = anchor.getAttribute("href") || anchor.href;
+  const navigationInfo = getSuspiciousNavigationInfo(rawHref, window.location.href);
 
-  if (!isSuspiciousNavigation(rawHref, window.location.href)) {
+  if (!navigationInfo) {
     return false;
   }
 
   stopEvent(event);
   anchor.setAttribute("data-zn-blocker-blocked-redirect", "true");
+  openHumanNavigationWarning(navigationInfo);
 
   return true;
 }
@@ -347,13 +397,15 @@ function handleCaptureSubmit(event) {
   }
 
   const actionUrl = event.target.getAttribute("action") || event.target.action;
+  const navigationInfo = getSuspiciousNavigationInfo(actionUrl, window.location.href);
 
-  if (!isSuspiciousNavigation(actionUrl, window.location.href)) {
+  if (!navigationInfo) {
     return;
   }
 
   stopEvent(event);
   event.target.setAttribute("data-zn-blocker-blocked-redirect", "true");
+  openHumanNavigationWarning(navigationInfo);
 }
 
 function queryAllIncludingRoot(root, selector) {

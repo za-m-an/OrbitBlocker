@@ -416,6 +416,10 @@ h1 {
   transition: transform 170ms ease, filter 170ms ease, border-color 170ms ease;
 }
 
+.action-button.wide {
+  grid-column: 1 / -1;
+}
+
 .action-button.primary {
   background: linear-gradient(140deg, #1f99d8, #2972cf);
 }

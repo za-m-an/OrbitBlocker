@@ -166,6 +166,8 @@ const YOUTUBE_PLAYBACK_PROMPT_PHRASES = [
 ];
 
 const COMPATIBILITY_RELOAD_SESSION_KEY = "__znBlockerYoutubeCompatReloadOnce";
+const COMPATIBILITY_CONFIRM_RESULT_SESSION_KEY =
+  "__znBlockerYoutubeCompatConfirmResult";
 const COMPATIBILITY_NOTICE_ID = "zn-blocker-youtube-compat-notice";
 const WATCH_PATH_REGEX = /^\/(watch|shorts|live)(?:\b|\/|$)/i;
 const COMPATIBILITY_SETTING_PATCH = Object.freeze({
@@ -235,6 +237,38 @@ function normalizeText(value) {
 
 function isWatchPlaybackPage() {
   return WATCH_PATH_REGEX.test(window.location.pathname || "");
+}
+
+function requestCompatibilityConfirmation(trigger) {
+  const savedResult = sessionStorage.getItem(COMPATIBILITY_CONFIRM_RESULT_SESSION_KEY);
+
+  if (savedResult === "accepted") {
+    return true;
+  }
+
+  if (savedResult === "declined") {
+    return false;
+  }
+
+  const reasonText =
+    trigger === "preplay"
+      ? "before playback starts"
+      : "after detecting a playback warning";
+
+  const accepted =
+    typeof window.confirm !== "function"
+      ? true
+      : window.confirm(
+          "ZN blocker can enable YouTube compatibility mode " +
+            `${reasonText}. This disables YouTube network and UI cleanup shields until you turn them back on in the extension settings. Continue?`
+        );
+
+  sessionStorage.setItem(
+    COMPATIBILITY_CONFIRM_RESULT_SESSION_KEY,
+    accepted ? "accepted" : "declined"
+  );
+
+  return accepted;
 }
 
 function isSponsoredText(value) {
@@ -400,6 +434,11 @@ async function enableYoutubePlaybackCompatibility(trigger) {
     !playbackCompatibilityEnabled ||
     !youtubeNetworkShieldEnabled
   ) {
+    return;
+  }
+
+  if (!requestCompatibilityConfirmation(trigger)) {
+    showCompatibilityNotice("Compatibility mode was not enabled.");
     return;
   }
 

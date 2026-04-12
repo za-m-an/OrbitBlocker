@@ -74,6 +74,12 @@ const MANUAL_MAX_HOST_RULES = 1000;
 const MANUAL_MAX_HIDE_RULES_PER_SITE = 60;
 const MANUAL_MAX_HIDE_SITES = 500;
 
+const NAVIGATION_ALLOW_RULE_ID_START = 650000;
+const NAVIGATION_ALLOW_RULE_ID_END = 659999;
+const NAVIGATION_ALLOW_RULE_TTL_MS = 45000;
+const BLOCK_WARNING_PAGE_PATH = "src/interstitial/blocked-navigation.html";
+const BLOCKED_NAVIGATION_EVENT_COOLDOWN_MS = 2500;
+
 const MANUAL_BLOCK_RESOURCE_TYPES = Object.freeze([
   "main_frame",
   "sub_frame",
@@ -190,6 +196,9 @@ let adaptiveDenylistHosts = new Set();
 let manualBlockStatePromise = null;
 let manualBlockFlushTimer = null;
 let manualBlockingHydrated = false;
+let nextNavigationAllowRuleId = NAVIGATION_ALLOW_RULE_ID_START;
+const temporaryNavigationAllowRules = new Map();
+const blockedNavigationEventTimestamps = new Map();
 
 function toMessageError(error) {
   if (error instanceof Error) {
@@ -952,6 +961,312 @@ function parseHttpUrl(rawUrl, baseUrl = undefined) {
   } catch {
     return null;
   }
+}
+
+function getTabIdFromSender(sender) {
+  return Number.isInteger(sender?.tab?.id) ? sender.tab.id : null;
+}
+
+function getNextNavigationAllowRuleId() {
+  const usedRuleIds = new Set();
+
+  for (const entry of temporaryNavigationAllowRules.values()) {
+    if (entry && Number.isInteger(entry.ruleId)) {
+      usedRuleIds.add(entry.ruleId);
+    }
+  }
+
+  const span = NAVIGATION_ALLOW_RULE_ID_END - NAVIGATION_ALLOW_RULE_ID_START + 1;
+
+  for (let offset = 0; offset < span; offset += 1) {
+    const candidate =
+      NAVIGATION_ALLOW_RULE_ID_START +
+      ((nextNavigationAllowRuleId - NAVIGATION_ALLOW_RULE_ID_START + offset) % span);
+
+    if (usedRuleIds.has(candidate)) {
+      continue;
+    }
+
+    nextNavigationAllowRuleId =
+      candidate >= NAVIGATION_ALLOW_RULE_ID_END
+        ? NAVIGATION_ALLOW_RULE_ID_START
+        : candidate + 1;
+    return candidate;
+  }
+
+  return null;
+}
+
+function createNavigationAllowRule(ruleId, tabId, host) {
+  return {
+    id: ruleId,
+    priority: 10000,
+    action: {
+      type: "allow"
+    },
+    condition: {
+      urlFilter: `||${host}^`,
+      resourceTypes: ["main_frame", "sub_frame"],
+      tabIds: [tabId]
+    }
+  };
+}
+
+async function clearTemporaryNavigationAllowRule(tabId) {
+  if (!Number.isInteger(tabId)) {
+    return;
+  }
+
+  const entry = temporaryNavigationAllowRules.get(tabId);
+
+  if (!entry) {
+    return;
+  }
+
+  if (entry.timeoutId) {
+    clearTimeout(entry.timeoutId);
+  }
+
+  temporaryNavigationAllowRules.delete(tabId);
+
+  if (typeof chrome.declarativeNetRequest.updateSessionRules !== "function") {
+    return;
+  }
+
+  try {
+    await chrome.declarativeNetRequest.updateSessionRules({
+      addRules: [],
+      removeRuleIds: [entry.ruleId]
+    });
+  } catch (error) {
+    console.warn("Failed to clear temporary navigation allow rule", error);
+  }
+}
+
+async function installTemporaryNavigationAllowRule(tabId, host) {
+  if (!Number.isInteger(tabId)) {
+    return {
+      applied: false,
+      reason: "invalid-tab"
+    };
+  }
+
+  if (typeof chrome.declarativeNetRequest.updateSessionRules !== "function") {
+    return {
+      applied: false,
+      reason: "session-rules-unavailable"
+    };
+  }
+
+  const normalizedHost = normalizeHost(host);
+
+  if (!normalizedHost) {
+    return {
+      applied: false,
+      reason: "invalid-host"
+    };
+  }
+
+  await clearTemporaryNavigationAllowRule(tabId);
+
+  const ruleId = getNextNavigationAllowRuleId();
+
+  if (!ruleId) {
+    return {
+      applied: false,
+      reason: "rule-cap-reached"
+    };
+  }
+
+  try {
+    await chrome.declarativeNetRequest.updateSessionRules({
+      addRules: [createNavigationAllowRule(ruleId, tabId, normalizedHost)],
+      removeRuleIds: []
+    });
+  } catch (error) {
+    console.warn("Failed to add temporary navigation allow rule", error);
+    return {
+      applied: false,
+      reason: "rule-install-failed"
+    };
+  }
+
+  const timeoutId = setTimeout(() => {
+    clearTemporaryNavigationAllowRule(tabId).catch((error) => {
+      console.warn("Failed to expire temporary navigation allow rule", error);
+    });
+  }, NAVIGATION_ALLOW_RULE_TTL_MS);
+
+  temporaryNavigationAllowRules.set(tabId, {
+    ruleId,
+    host: normalizedHost,
+    timeoutId
+  });
+
+  return {
+    applied: true,
+    reason: "installed",
+    ruleId
+  };
+}
+
+function buildBlockWarningUrl({ blockedUrl, targetUrl, sourceUrl, reason }) {
+  const pageUrl = new URL(chrome.runtime.getURL(BLOCK_WARNING_PAGE_PATH));
+
+  pageUrl.searchParams.set("blocked", blockedUrl);
+  pageUrl.searchParams.set("target", targetUrl);
+
+  if (sourceUrl) {
+    pageUrl.searchParams.set("source", sourceUrl);
+  }
+
+  if (reason) {
+    pageUrl.searchParams.set("reason", reason);
+  }
+
+  return pageUrl.toString();
+}
+
+function shouldHandleBlockedNavigationEvent(tabId, rawUrl) {
+  if (!Number.isInteger(tabId) || tabId < 0) {
+    return false;
+  }
+
+  const parsed = parseHttpUrl(rawUrl);
+
+  if (!parsed) {
+    return false;
+  }
+
+  const now = Date.now();
+  const dedupeKey = `${tabId}|${parsed.href}`;
+  const lastSeen = blockedNavigationEventTimestamps.get(dedupeKey) || 0;
+
+  if (now - lastSeen < BLOCKED_NAVIGATION_EVENT_COOLDOWN_MS) {
+    return false;
+  }
+
+  blockedNavigationEventTimestamps.set(dedupeKey, now);
+
+  for (const [key, timestamp] of blockedNavigationEventTimestamps.entries()) {
+    if (now - timestamp > BLOCKED_NAVIGATION_EVENT_COOLDOWN_MS * 4) {
+      blockedNavigationEventTimestamps.delete(key);
+    }
+  }
+
+  return true;
+}
+
+async function openBlockedNavigationWarning(tabId, payload) {
+  if (!Number.isInteger(tabId)) {
+    return {
+      ok: false,
+      error: "Missing tab context"
+    };
+  }
+
+  const blocked = parseHttpUrl(payload.blockedUrl, payload.sourceUrl || undefined);
+  const target =
+    parseHttpUrl(payload.targetUrl, blocked?.href || payload.sourceUrl || undefined) || blocked;
+
+  if (!blocked || !target) {
+    return {
+      ok: false,
+      error: "Invalid blocked navigation details"
+    };
+  }
+
+  const source = parseHttpUrl(payload.sourceUrl || "");
+  const warningUrl = buildBlockWarningUrl({
+    blockedUrl: blocked.href,
+    targetUrl: target.href,
+    sourceUrl: source ? source.href : "",
+    reason: String(payload.reason || "suspicious-navigation")
+  });
+
+  await chrome.tabs.update(tabId, {
+    url: warningUrl
+  });
+
+  return {
+    ok: true
+  };
+}
+
+async function proceedBlockedNavigation(tabId, payload) {
+  if (!Number.isInteger(tabId)) {
+    return {
+      ok: false,
+      error: "Missing tab context"
+    };
+  }
+
+  const blocked = parseHttpUrl(payload.blockedUrl, payload.sourceUrl || undefined);
+  const destination =
+    parseHttpUrl(payload.targetUrl, blocked?.href || payload.sourceUrl || undefined) || blocked;
+
+  if (!destination) {
+    return {
+      ok: false,
+      error: "Invalid destination URL"
+    };
+  }
+
+  const allowRule = await installTemporaryNavigationAllowRule(tabId, destination.hostname);
+
+  await chrome.tabs.update(tabId, {
+    url: destination.href
+  });
+
+  return {
+    ok: true,
+    destinationUrl: destination.href,
+    allowRuleApplied: allowRule.applied,
+    allowRuleReason: allowRule.reason
+  };
+}
+
+async function clearSiteCacheForOrigin(tabId, rawUrl) {
+  if (typeof chrome.browsingData?.remove !== "function") {
+    return {
+      ok: false,
+      error: "Browsing data API is unavailable"
+    };
+  }
+
+  const parsed = parseHttpUrl(rawUrl);
+
+  if (!parsed) {
+    return {
+      ok: false,
+      error: "Invalid site URL"
+    };
+  }
+
+  await chrome.browsingData.remove(
+    {
+      origins: [parsed.origin]
+    },
+    {
+      cache: true,
+      cacheStorage: true
+    }
+  );
+
+  if (Number.isInteger(tabId) && typeof chrome.tabs?.reload === "function") {
+    try {
+      await chrome.tabs.reload(tabId, {
+        bypassCache: true
+      });
+    } catch {
+      // Ignore reload failures in restricted tabs.
+    }
+  }
+
+  return {
+    ok: true,
+    origin: parsed.origin
+  };
 }
 
 function createManualBlockState() {
@@ -2079,9 +2394,66 @@ chrome.runtime.onStartup.addListener(async () => {
   await syncBlockingState();
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message !== "object") {
     return;
+  }
+
+  if (message.type === "OPEN_BLOCK_WARNING") {
+    (async () => {
+      const tabId = getTabIdFromSender(sender);
+      const outcome = await openBlockedNavigationWarning(tabId, {
+        blockedUrl: typeof message.blockedUrl === "string" ? message.blockedUrl : "",
+        targetUrl: typeof message.targetUrl === "string" ? message.targetUrl : "",
+        sourceUrl: typeof message.sourceUrl === "string" ? message.sourceUrl : "",
+        reason: typeof message.reason === "string" ? message.reason : ""
+      });
+
+      sendResponse(outcome);
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
+  }
+
+  if (message.type === "NAVIGATE_BLOCKED_TARGET") {
+    (async () => {
+      const tabId = getTabIdFromSender(sender);
+      const outcome = await proceedBlockedNavigation(tabId, {
+        blockedUrl: typeof message.blockedUrl === "string" ? message.blockedUrl : "",
+        targetUrl: typeof message.targetUrl === "string" ? message.targetUrl : "",
+        sourceUrl: typeof message.sourceUrl === "string" ? message.sourceUrl : ""
+      });
+
+      sendResponse(outcome);
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
+  }
+
+  if (message.type === "CLEAR_SITE_CACHE") {
+    (async () => {
+      const tabId = Number.isInteger(message.tabId) ? message.tabId : getTabIdFromSender(sender);
+      const siteUrl = typeof message.siteUrl === "string" ? message.siteUrl : "";
+      const outcome = await clearSiteCacheForOrigin(tabId, siteUrl);
+      sendResponse(outcome);
+    })().catch((error) => {
+      sendResponse({
+        ok: false,
+        error: toMessageError(error)
+      });
+    });
+
+    return true;
   }
 
   if (message.type === "AUTO_LEARN_PAGE_URLS") {
@@ -2283,6 +2655,40 @@ chrome.contextMenus?.onClicked?.addListener((info, tab) => {
     console.warn("Manual context-menu block failed", error);
   });
 });
+
+chrome.tabs?.onRemoved?.addListener((tabId) => {
+  clearTemporaryNavigationAllowRule(tabId).catch((error) => {
+    console.warn("Failed to clear temporary navigation rule on tab close", error);
+  });
+});
+
+chrome.webNavigation?.onErrorOccurred?.addListener(
+  (details) => {
+    if (details.frameId !== 0 || details.error !== "net::ERR_BLOCKED_BY_CLIENT") {
+      return;
+    }
+
+    if (!shouldHandleBlockedNavigationEvent(details.tabId, details.url)) {
+      return;
+    }
+
+    openBlockedNavigationWarning(details.tabId, {
+      blockedUrl: details.url,
+      targetUrl: details.url,
+      sourceUrl: "",
+      reason: "blocked-by-rule"
+    }).catch((error) => {
+      console.warn("Failed to open blocked navigation warning", error);
+    });
+  },
+  {
+    url: [
+      {
+        schemes: ["http", "https"]
+      }
+    ]
+  }
+);
 
 initializeDiagnostics().catch((error) => {
   console.warn("Diagnostics initialization failed", error);
