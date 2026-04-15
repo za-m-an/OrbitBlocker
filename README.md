@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="assets/logo/zn-blocker-logo.svg" alt="OrbitBlocker logo" width="520" />
+    <img src="assets/logo/orbitblocker-logo.svg" alt="OrbitBlocker logo" width="520" />
 </p>
 
 # OrbitBlocker
@@ -7,7 +7,7 @@
 OrbitBlocker is a Manifest V3 extension for Chromium browsers that aggressively suppresses ads, sponsored content, tracking scripts, and OEM telemetry endpoints while keeping the UI simple for daily use.
 
 <p align="left">
-    <img src="https://img.shields.io/badge/version-1.1.3-22c55e" alt="Version 1.1.3" />
+    <img src="https://img.shields.io/badge/version-1.1.4-22c55e" alt="Version 1.1.4" />
     <img src="https://img.shields.io/badge/manifest-MV3-0ea5e9" alt="Manifest V3" />
     <img src="https://img.shields.io/badge/platform-Chromium-1f2937" alt="Chromium" />
     <img src="https://img.shields.io/badge/license-Non--Commercial-f59e0b" alt="License" />
@@ -17,7 +17,7 @@ OrbitBlocker is a Manifest V3 extension for Chromium browsers that aggressively 
 
 | Item | Value |
 | --- | --- |
-| Current extension version | **1.1.3** |
+| Current extension version | **1.1.4** |
 | Last docs refresh | **2026-04-10** |
 | Rules architecture | Static DNR + Dynamic adaptive learning |
 | Browser target | Chrome, Edge, and MV3-compatible Chromium browsers |
