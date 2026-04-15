@@ -189,6 +189,9 @@ const AUTO_LEARN_RULE_RESOURCE_TYPES = Object.freeze([
 const PROTECTED_COMPATIBILITY_HOST_SUFFIXES = Object.freeze([
   "youtube.com",
   "youtube-nocookie.com",
+  "google.com",
+  "googleapis.com",
+  "googleusercontent.com",
   "youtubei.googleapis.com",
   "youtube.googleapis.com",
   "googlevideo.com",

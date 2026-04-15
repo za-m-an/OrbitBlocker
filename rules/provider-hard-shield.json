@@ -1219,5 +1219,117 @@
         "other"
       ]
     }
+  },
+  {
+    "id": 64,
+    "priority": 10000,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "initiatorDomains": [
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "youtubekids.com"
+      ],
+      "urlFilter": "||www.youtube.com/watch?",
+      "resourceTypes": [
+        "xmlhttprequest",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 65,
+    "priority": 10000,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "initiatorDomains": [
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "youtubekids.com"
+      ],
+      "urlFilter": "||youtube.com/watch?",
+      "resourceTypes": [
+        "xmlhttprequest",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 66,
+    "priority": 10000,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "initiatorDomains": [
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "youtubekids.com"
+      ],
+      "urlFilter": "||www.youtube.com/playlist?list=",
+      "resourceTypes": [
+        "xmlhttprequest",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 67,
+    "priority": 10000,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "initiatorDomains": [
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "youtubekids.com"
+      ],
+      "urlFilter": "||youtube.com/playlist?list=",
+      "resourceTypes": [
+        "xmlhttprequest",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 68,
+    "priority": 10000,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "initiatorDomains": [
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "youtubekids.com"
+      ],
+      "regexFilter": "^https?://[^/]+/(?:gen_204|generate_204)(?:[?#].*)?$",
+      "resourceTypes": [
+        "image",
+        "xmlhttprequest",
+        "ping",
+        "other"
+      ]
+    }
   }
 ]
