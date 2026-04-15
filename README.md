@@ -105,7 +105,7 @@ This project focuses on ad, sponsored-content, and tracking suppression. It does
 
 ## License
 
-Licensed under the ZN Blocker Community Non-Commercial License v1.0.
+Licensed under the OrbitBlocker Community Non-Commercial License v1.0.
 
 - Non-commercial use is allowed.
 - Commercial resale, paid redistribution, SaaS monetization, and white-label resale are prohibited.

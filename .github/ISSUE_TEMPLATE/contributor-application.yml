@@ -1,5 +1,5 @@
 name: Contributor Application
-description: Apply to become a contributor for ZN blocker
+description: Apply to become a contributor for OrbitBlocker
 title: "Contributor Application: <your name>"
 labels:
   - contributor-application
@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your interest in contributing to ZN blocker.
+        Thanks for your interest in contributing to OrbitBlocker.
   - type: input
     id: name
     attributes:

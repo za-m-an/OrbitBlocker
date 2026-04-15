@@ -59,5 +59,5 @@ Release date: 2026-04-10
 
 ## Licensing Notes
 
-- Licensed under the ZN Blocker Community Non-Commercial License v1.0.
+- Licensed under the OrbitBlocker Community Non-Commercial License v1.0.
 - Commercial or monetized usage is not permitted.

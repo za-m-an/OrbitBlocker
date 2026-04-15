@@ -101,7 +101,12 @@ if (-not (Test-Path $distDir)) {
 }
 
 $resolvedKeyPath = if ([string]::IsNullOrWhiteSpace($KeyPath)) {
-  Join-Path $repoRoot "keys\zn-blocker-release.pem"
+  $orbitKey = Join-Path $repoRoot "keys\orbitblocker-release.pem"
+  if (Test-Path $orbitKey) {
+    $orbitKey
+  } else {
+    Join-Path $repoRoot "keys\zn-blocker-release.pem"
+  }
 } else {
   if ([System.IO.Path]::IsPathRooted($KeyPath)) {
     $KeyPath
@@ -114,7 +119,7 @@ $targets = @("chrome", "edge", "chromium")
 $releaseFiles = @()
 
 foreach ($target in $targets) {
-  $stageDir = Join-Path $env:TEMP ("zn-blocker-stage-" + [guid]::NewGuid().ToString("N"))
+  $stageDir = Join-Path $env:TEMP ("orbitblocker-stage-" + [guid]::NewGuid().ToString("N"))
   New-StagePackage -RepoRoot $repoRoot -StageDir $stageDir -Manifest $manifest
 
   $zipName = "$releaseBase-$target.zip"
